@@ -1,0 +1,2628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CZ Silicon Dopant & Multi-Run Recharge Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Pretendard:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- 상단 헤더 & 글로벌 타입/상수 바 -->
+  <header class="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-30 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i class="fa-solid fa-atom text-slate-950 text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            CZ Silicon Dopant &amp; Recharge Calculator
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 font-normal">1st / 2nd / 3rd Run</span>
+          </h1>
+          <p class="text-xs text-slate-400">CZ 단결정 실리콘 도펀트 투입량 및 다단 리차지(Recharge) 시뮬레이터</p>
+        </div>
+      </div>
+
+      <!-- P-type / N-type 선택 -->
+      <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <button id="typePBtn" onclick="setType('P')" class="px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-blue-600 text-white shadow-md shadow-blue-600/30">
+          <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> P-type (B, Ga)
+        </button>
+        <button id="typeNBtn" onclick="setType('N')" class="px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span> N-type (P, As, Sb)
+        </button>
+      </div>
+    </div>
+
+    <!-- 글로벌 도펀트 원소 및 물리 상수 바 -->
+    <div class="max-w-7xl mx-auto mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+          <i class="fa-solid fa-sliders text-cyan-400"></i> 원소:
+        </span>
+        <div id="elementPresetContainer" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
+        <div class="flex items-center gap-1.5">
+          <label class="text-slate-400">k₀:</label>
+          <input type="number" id="globalK0" value="0.78" step="0.001" oninput="recalculateAll()"
+            class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-cyan-300 font-mono-num text-xs focus:ring-1 focus:ring-cyan-500 outline-none">
+        </div>
+        <div class="flex items-center gap-1.5">
+          <label class="text-slate-400">μ (cm²/V·s):</label>
+          <input type="number" id="globalMu" value="480" step="10" oninput="recalculateAll()"
+            class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-cyan-300 font-mono-num text-xs focus:ring-1 focus:ring-cyan-500 outline-none">
+        </div>
+        <div class="flex items-center gap-1.5">
+          <label class="text-slate-400">Si 밀도 (g/cm³):</label>
+          <input type="number" id="globalDensity" value="2.33" step="0.01" oninput="recalculateAll()"
+            class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-slate-300 font-mono-num text-xs focus:ring-1 focus:ring-cyan-500 outline-none">
+        </div>
+        <div class="flex items-center gap-1.5 border-l border-slate-800 pl-2">
+          <label class="text-slate-400" title="이론 원자밀도(5.0E22) vs 엑셀 시트 호환">ppb 환산 기준:</label>
+          <select id="globalPpbMode" onchange="recalculateAll()"
+            class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-emerald-300 font-mono-num text-xs outline-none">
+            <option value="standard" selected>이론 원자비 (N_Si=5.0E22)</option>
+            <option value="excel">엑셀 시트 기준 (k₀ 보정)</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-1.5 border-l border-slate-800 pl-2">
+          <label class="text-slate-400" title="Target Res 적용 위치">비저항 타겟 위치:</label>
+          <select id="globalTargetPos" onchange="recalculateAll()"
+            class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-cyan-300 font-mono-num text-xs outline-none">
+            <option value="body" selected>Body Start (Crown 제외 0cm)</option>
+            <option value="seed">Seed (g = 0%)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 컨테이너 -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+    <!-- 멀티 런 탭 네비게이션 -->
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div class="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+        <button id="tabBtn_1" onclick="switchRunTab(1)" class="px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-cyan-600 text-white shadow-lg shadow-cyan-600/25 flex items-center gap-2">
+          <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[11px]">1</span>
+          1st Run (초기 장입)
+        </button>
+        <button id="tabBtn_2" onclick="switchRunTab(2)" class="px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white flex items-center gap-2">
+          <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[11px]">2</span>
+          2nd Run (Recharge)
+        </button>
+        <button id="tabBtn_3" onclick="switchRunTab(3)" class="px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white flex items-center gap-2">
+          <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[11px]">3</span>
+          3rd Run (Recharge)
+        </button>
+        <button id="tabBtn_4" onclick="switchRunTab(4)" class="px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white flex items-center gap-2 border border-amber-500/30">
+          <i class="fa-solid fa-table text-amber-400"></i>
+          Target Res 조견표
+        </button>
+        <button id="tabBtn_5" onclick="switchRunTab(5)" class="px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white flex items-center gap-2 border border-emerald-500/30">
+          <i class="fa-solid fa-ruler-horizontal text-emerald-400"></i>
+          Dopant 역산 &amp; Length
+        </button>
+        <button id="tabBtn_6" onclick="switchRunTab(6)" class="px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white flex items-center gap-2 border border-purple-500/40">
+          <i class="fa-solid fa-book-open text-purple-400"></i>
+          수식 정의서 (Formula)
+        </button>
+      </div>
+
+      <button onclick="resetAllDefaults()" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-arrow-rotate-left text-cyan-400"></i> 전체 기본값 복원
+      </button>
+    </div>
+
+    <!-- ==================== 1ST RUN PANEL ==================== -->
+    <section id="runPanel_1" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 1st Run 입력 -->
+        <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+            <i class="fa-solid fa-play text-cyan-400"></i> 1st Run 공정 조건 (Initial Charge)
+          </h2>
+
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Charge Weight (kg)</label>
+              <input type="number" id="r1_charge" value="450" step="1" oninput="recalculateAll()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs text-slate-400">Diameter (mm)</label>
+                <div class="flex items-center gap-1 text-[10px]">
+                  <button type="button" onclick="setDiamOffset(1, 0)" id="r1_offsetBtn_0" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition">+0</button>
+                  <button type="button" onclick="setDiamOffset(1, 7)" id="r1_offsetBtn_7" class="px-1.5 py-0.5 rounded bg-cyan-900/70 text-cyan-300 border border-cyan-700 font-semibold transition">+7</button>
+                  <input type="number" id="r1_diamOffset" value="7" step="1" oninput="syncOffsetButtons(1); recalculateAll()"
+                    class="w-10 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-center text-cyan-300 font-mono-num outline-none" title="보정값(mm) 직접 입력">
+                </div>
+              </div>
+              <div class="relative">
+                <input type="number" id="r1_diameter" value="443" step="1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3 pr-20 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+                <span id="r1_effDiamBadge" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono-num text-cyan-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">= 450mm</span>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs text-slate-400">Taper Weight (kg)</label>
+                <div class="flex items-center gap-1">
+                  <button type="button" id="r1_taperModeBtn" onclick="toggleTaperMode(1)"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/60 hover:bg-slate-700 text-cyan-300 border border-cyan-700 transition">
+                    각도 계산 (°)
+                  </button>
+                </div>
+              </div>
+              <div id="r1_taperDirectWrap" class="hidden">
+                <input type="number" id="r1_taper" value="21.71" step="0.01" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+              </div>
+              <div id="r1_taperAngleWrap" class="space-y-1.5">
+                <div class="flex items-center gap-1.5">
+                  <input type="number" id="r1_taperAngle" value="38" step="0.5" min="1" max="89" oninput="recalculateAll()"
+                    class="w-20 bg-slate-950 border border-cyan-700 rounded-xl px-2.5 py-2 text-cyan-300 font-mono-num text-sm focus:ring-2 focus:ring-cyan-500 outline-none" title="Crown 각도 (°) - 기본 38°">
+                  <span class="text-xs text-slate-400">°</span>
+                  <span id="r1_taperCalcDisplay" class="flex-1 text-right text-xs font-mono-num text-emerald-400 font-bold">21.71 kg (H: 175.8mm)</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-cyan-300 font-semibold mb-1">Target Res. @ Body Start (Ω·cm)</label>
+              <input type="number" id="r1_targetRes" value="2.166" step="0.001" oninput="recalculateAll()"
+                class="w-full bg-slate-950 border border-cyan-700 rounded-xl px-3 py-2 text-cyan-300 font-mono-num font-bold focus:ring-2 focus:ring-cyan-400 outline-none">
+            </div>
+          </div>
+
+          <!-- 도펀트 형태 & 농도 -->
+          <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-300">도펀트 형태 (Dopant Mode)</span>
+              <div class="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                <label class="px-2.5 py-1 rounded cursor-pointer has-[:checked]:bg-cyan-600 has-[:checked]:text-white text-slate-400">
+                  <input type="radio" name="r1_mode" value="alloy" checked onchange="toggleRunMode(1, 'alloy')" class="hidden"> Master Alloy
+                </label>
+                <label class="px-2.5 py-1 rounded cursor-pointer has-[:checked]:bg-cyan-600 has-[:checked]:text-white text-slate-400">
+                  <input type="radio" name="r1_mode" value="pure" onchange="toggleRunMode(1, 'pure')" class="hidden"> Pure
+                </label>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <label class="text-slate-400">Dopant Alloy Conc. (ppb)</label>
+                <span id="r1_conc_exp" class="text-[11px] text-cyan-400 font-mono-num">≈ 1.99E+06 ppb</span>
+              </div>
+              <input type="text" id="r1_conc" value="1,990,000" oninput="recalculateAll()" onblur="formatConcInput(this); recalculateAll()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono-num text-sm focus:ring-2 focus:ring-cyan-500 outline-none">
+            </div>
+          </div>
+
+          <!-- 1st Run Pull Summary (2nd Run 연동용) -->
+          <div class="p-4 bg-blue-950/20 border border-blue-800/50 rounded-xl space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-right-from-bracket"></i> 1st Run Pull Summary (2nd Run 연동)
+              </h3>
+              <span class="text-[11px] text-blue-400/80">p/o + Ingot wt</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">1st Ingot Weight (kg)</label>
+                <input type="number" id="r1_ingotWt" value="75" step="0.1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-blue-800/60 rounded-lg px-3 py-1.5 text-white font-mono-num text-sm focus:ring-1 focus:ring-blue-400 outline-none">
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">1st Pull-out (p/o) Wt (kg)</label>
+                <input type="number" id="r1_poWt" value="15" step="0.1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-blue-800/60 rounded-lg px-3 py-1.5 text-white font-mono-num text-sm focus:ring-1 focus:ring-blue-400 outline-none">
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-blue-900/50 text-xs">
+              <div>
+                <div class="text-slate-400 text-[11px]">총 인출량 (p/o+Ingot)</div>
+                <div class="font-mono-num font-bold text-white" id="r1_totalRemoved">90.0 kg</div>
+              </div>
+              <div>
+                <div class="text-slate-400 text-[11px]">잔류 용융액 (Remaining)</div>
+                <div class="font-mono-num font-bold text-blue-300" id="r1_remainingMelt">360.0 kg</div>
+              </div>
+              <div>
+                <div class="text-slate-400 text-[11px]">잔류 Alloy (1st 기준)</div>
+                <div class="font-mono-num font-bold text-emerald-400" id="r1_residualDopant">28.95 g</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1st Run 결과 카드 -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="rounded-2xl bg-gradient-to-br from-emerald-950/70 via-slate-900 to-cyan-950/70 border-2 border-emerald-500/50 p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                <i class="fa-solid fa-weight-scale"></i> 1st Run 투입 도펀트 무게 (Dopant Weight)
+              </span>
+              <span id="r1_modeBadge" class="text-xs px-2.5 py-1 rounded-full bg-emerald-900/60 text-emerald-300 border border-emerald-700 font-mono">Master Alloy</span>
+            </div>
+            <div class="flex flex-wrap items-baseline gap-4 mb-4">
+              <div class="font-mono-num text-5xl font-extrabold text-white" id="r1_outWeight">34.850</div>
+              <span class="text-2xl font-bold text-emerald-400 font-mono">g</span>
+              <div class="text-sm text-slate-400 font-mono-num pl-3 border-l border-slate-700" id="r1_outPureWeight">
+                (Pure 환산: 0.02082 g)
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 pt-4 border-t border-slate-800/80 text-xs">
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400">Dopant ppb input</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r1_outPpb">120.21 ppb</div>
+              </div>
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400">초기 융액 [C]o (g=0%)</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r1_outCo">7.71E+15 /cm³</div>
+              </div>
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400" id="r1_outCsLabel">Body Start 고체 [C]s</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r1_outCs">6.01E+15 /cm³</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dopant ppb input 실시간 수식 상세 풀이 박스 -->
+          <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="font-bold text-cyan-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-square-root-variable"></i> 1st Run [Dopant ppb input &amp; Weight] 실시간 계산식
+              </span>
+              <span class="text-[11px] text-slate-400 font-mono-num">q = 1.60E-19 C</span>
+            </div>
+            <div id="r1_formulaSteps" class="space-y-1.5 font-mono-num text-[11px] sm:text-xs text-slate-300 leading-relaxed"></div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300 flex items-center justify-between">
+            <div>
+              <span class="font-semibold text-white">다음 단계 안내:</span> 좌측 하단의 <span class="text-blue-300 font-semibold">1st Run Pull Summary</span>에 실제 인출한 잉곳 중량과 p/o 중량을 입력한 뒤, 상단 <span class="text-cyan-400 font-semibold">2nd Run (Recharge)</span> 탭으로 이동하세요.
+            </div>
+            <button onclick="switchRunTab(2)" class="shrink-0 ml-4 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition flex items-center gap-1.5">
+              2nd Run 이동 <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 2ND RUN PANEL ==================== -->
+    <section id="runPanel_2" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 2nd Run 입력 -->
+        <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-arrows-rotate text-emerald-400"></i> 2nd Run 리차지 조건 (Recharge)
+            </h2>
+            <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+              <input type="checkbox" id="r2_inherit" checked onchange="recalculateAll()" class="rounded bg-slate-800 border-slate-600 text-cyan-500">
+              1st Run 잔류량 자동 연동
+            </label>
+          </div>
+
+          <!-- 상속된 잔류량 -->
+          <div class="grid grid-cols-2 gap-3 p-3 bg-slate-950/80 border border-slate-800 rounded-xl">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Remaining Melt Wt (kg)</label>
+              <input type="number" id="r2_remMelt" value="360.0" step="0.1" oninput="recalculateAll()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-blue-300 font-mono-num text-sm outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">잔류 도펀트 환산량 (2nd Alloy g)</label>
+              <input type="number" id="r2_resDopant" value="23.38" step="0.01" oninput="recalculateAll()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-emerald-300 font-mono-num text-sm outline-none" title="Pure 변환 없이 (1-g)^k0 및 Alloy 농도비로 바로 환산된 잔류 Alloy 무게(g)">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">2nd Target Charge (kg)</label>
+              <input type="number" id="r2_charge" value="440" step="1" oninput="recalculateAll()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Adding Si Weight (kg)</label>
+              <input type="text" id="r2_addingSi" value="80.0" readonly
+                class="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2 text-amber-300 font-mono-num font-semibold cursor-not-allowed">
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs text-slate-400">Diameter (mm)</label>
+                <div class="flex items-center gap-1 text-[10px]">
+                  <button type="button" onclick="setDiamOffset(2, 0)" id="r2_offsetBtn_0" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition">+0</button>
+                  <button type="button" onclick="setDiamOffset(2, 7)" id="r2_offsetBtn_7" class="px-1.5 py-0.5 rounded bg-cyan-900/70 text-cyan-300 border border-cyan-700 font-semibold transition">+7</button>
+                  <input type="number" id="r2_diamOffset" value="7" step="1" oninput="syncOffsetButtons(2); recalculateAll()"
+                    class="w-10 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-center text-cyan-300 font-mono-num outline-none" title="보정값(mm) 직접 입력">
+                </div>
+              </div>
+              <div class="relative">
+                <input type="number" id="r2_diameter" value="380" step="1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3 pr-20 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+                <span id="r2_effDiamBadge" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono-num text-cyan-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">= 387mm</span>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs text-slate-400">Taper Weight (kg)</label>
+                <button type="button" id="r2_taperModeBtn" onclick="toggleTaperMode(2)"
+                  class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/60 hover:bg-slate-700 text-cyan-300 border border-cyan-700 transition">
+                  각도 계산 (°)
+                </button>
+              </div>
+              <div id="r2_taperDirectWrap" class="hidden">
+                <input type="number" id="r2_taper" value="13.81" step="0.01" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+              </div>
+              <div id="r2_taperAngleWrap" class="space-y-1.5">
+                <div class="flex items-center gap-1.5">
+                  <input type="number" id="r2_taperAngle" value="38" step="0.5" min="1" max="89" oninput="recalculateAll()"
+                    class="w-20 bg-slate-950 border border-cyan-700 rounded-xl px-2.5 py-2 text-cyan-300 font-mono-num text-sm focus:ring-2 focus:ring-cyan-500 outline-none" title="Crown 각도 (°) - 기본 38°">
+                  <span class="text-xs text-slate-400">°</span>
+                  <span id="r2_taperCalcDisplay" class="flex-1 text-right text-xs font-mono-num text-emerald-400 font-bold">13.81 kg (H: 151.2mm)</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-cyan-300 font-semibold mb-1">2nd Target Res. @ Body Start (Ω·cm)</label>
+              <input type="number" id="r2_targetRes" value="1.235" step="0.001" oninput="recalculateAll()"
+                class="w-full bg-slate-950 border border-cyan-700 rounded-xl px-3 py-2 text-cyan-300 font-mono-num font-bold focus:ring-2 focus:ring-cyan-400 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Recycle Dopant (g)</label>
+              <input type="number" id="r2_recycle" value="0" step="0.01" oninput="recalculateAll()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+            </div>
+          </div>
+
+          <!-- 2nd Adding Dopant Mode -->
+          <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-300">Adding Dopant 형태</span>
+              <div class="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                <label class="px-2.5 py-1 rounded cursor-pointer has-[:checked]:bg-cyan-600 has-[:checked]:text-white text-slate-400">
+                  <input type="radio" name="r2_mode" value="alloy" checked onchange="toggleRunMode(2, 'alloy')" class="hidden"> Master Alloy
+                </label>
+                <label class="px-2.5 py-1 rounded cursor-pointer has-[:checked]:bg-cyan-600 has-[:checked]:text-white text-slate-400">
+                  <input type="radio" name="r2_mode" value="pure" onchange="toggleRunMode(2, 'pure')" class="hidden"> Pure
+                </label>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <label class="text-slate-400">Adding Alloy Conc. (ppb)</label>
+                <span id="r2_conc_exp" class="text-[11px] text-cyan-400 font-mono-num">≈ 2.70E+06 ppb</span>
+              </div>
+              <input type="text" id="r2_conc" value="2,700,000" oninput="recalculateAll()" onblur="formatConcInput(this); recalculateAll()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono-num text-sm focus:ring-2 focus:ring-cyan-500 outline-none">
+            </div>
+          </div>
+
+          <!-- 2nd Run Last 종료 / 중량 밸런스 (Charge - Crown - Body - Tail - Remain = 0) -->
+          <div class="p-3.5 bg-rose-950/20 border border-rose-800/50 rounded-xl space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-flag-checkered"></i> 2nd Last 종료 중량 밸런스 (Remain 설정)
+              </h3>
+              <span class="text-[10px] text-rose-400/90 font-mono-num">Charge - Crown - Body - Tail - Remain = 0</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Tail 각도 (°)</label>
+                <input type="number" id="r2_tailAngle" value="63.96" step="0.1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-amber-300 font-mono-num">
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Tail Wt (kg)</label>
+                <input type="text" id="r2_tailWt" value="36.20" readonly
+                  class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-2 py-1 text-amber-300 font-mono-num font-bold cursor-not-allowed">
+              </div>
+              <div>
+                <label class="block text-[11px] text-rose-300 font-semibold mb-1">Remain (kg)</label>
+                <input type="number" id="r2_lastRemain" value="80.0" step="1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-rose-600/70 rounded-lg px-2 py-1 text-rose-300 font-mono-num font-bold">
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-rose-900/40 text-[11px] font-mono-num">
+              <div>
+                <span class="text-slate-400 block">최대 Body Wt</span>
+                <span id="r2_maxBodyWt" class="text-emerald-400 font-bold">310.0 kg</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Target Length</span>
+                <span id="r2_maxBodyLen" class="text-cyan-300 font-bold">1,132 mm</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Target End 비저항</span>
+                <span id="r2_endRes" class="text-yellow-300 font-bold">0.9850 Ω·cm</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2nd Run Pull Summary (3rd Run 연동용) -->
+          <div class="p-4 bg-purple-950/20 border border-purple-800/50 rounded-xl space-y-3">
+            <h3 class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-right-from-bracket"></i> 2nd Run Pull Summary (3rd Run 연동)
+            </h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">2nd Ingot Weight (kg)</label>
+                <input type="number" id="r2_ingotWt" value="200" step="0.1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-purple-800/60 rounded-lg px-3 py-1.5 text-white font-mono-num text-sm outline-none">
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">2nd Pull-out (p/o) Wt (kg)</label>
+                <input type="number" id="r2_poWt" value="20" step="0.1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-purple-800/60 rounded-lg px-3 py-1.5 text-white font-mono-num text-sm outline-none">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-purple-900/50 text-xs">
+              <div>
+                <div class="text-slate-400 text-[11px]">잔류 용융액 (Remaining)</div>
+                <div class="font-mono-num font-bold text-purple-300" id="r2_remainingMelt">220.0 kg</div>
+              </div>
+              <div>
+                <div class="text-slate-400 text-[11px]">잔류 Alloy (2nd 기준)</div>
+                <div class="font-mono-num font-bold text-emerald-400" id="r2_residualDopant">0.00 g</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2nd Run 결과 & 룩업 테이블 -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="rounded-2xl bg-gradient-to-br from-blue-950/70 via-slate-900 to-emerald-950/70 border-2 border-cyan-500/50 p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle"></i> 2nd Run 추가 투입 도펀트 (Net Adding Dopant)
+              </span>
+              <span id="r2_modeBadge" class="text-xs px-2.5 py-1 rounded-full bg-cyan-900/60 text-cyan-300 border border-cyan-700 font-mono">Master Alloy</span>
+            </div>
+            <div class="flex flex-wrap items-baseline gap-4 mb-4">
+              <div class="font-mono-num text-5xl font-extrabold text-white" id="r2_outAddingWeight">18.020</div>
+              <span class="text-2xl font-bold text-cyan-400 font-mono">g</span>
+              <div class="text-sm text-slate-400 font-mono-num pl-3 border-l border-slate-700" id="r2_outTotalNeeded">
+                (총 필요량: 41.40 g - 잔류 환산: 23.38 g)
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 pt-4 border-t border-slate-800/80 text-xs">
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400">2nd Dopant ppb input</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r2_outPpb">210.84 ppb</div>
+              </div>
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400">2nd 초기 융액 [C]o (g=0%)</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r2_outCo">1.27E+16 /cm³</div>
+              </div>
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400">2nd Body Start [C]s</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r2_outCs">9.91E+15 /cm³</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2nd Run 실시간 수식 상세 풀이 박스 -->
+          <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 space-y-2 text-xs">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="font-bold text-cyan-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-square-root-variable"></i> 2nd Run [Dopant ppb input &amp; Adding Dopant] 실시간 계산식
+              </span>
+            </div>
+            <div id="r2_formulaSteps" class="space-y-1.5 font-mono-num text-[11px] sm:text-xs text-slate-300 leading-relaxed"></div>
+          </div>
+
+          <!-- 2nd Run Lookup Table (p/o wt + Ingot wt vs Adding Dopant g) -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-900">
+              <h3 class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                <i class="fa-solid fa-table-list"></i> 1st (p/o wt + Ingot wt) 별 2nd Adding Dopant 조건표
+              </h3>
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <label class="text-slate-400">시작:</label>
+                <input type="number" id="r2_lookupStart" value="90" step="1" oninput="recalculateAll()"
+                  class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono-num text-xs">
+                <label class="text-slate-400">끝:</label>
+                <input type="number" id="r2_lookupEnd" value="440" step="1" oninput="recalculateAll()"
+                  class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono-num text-xs">
+                <label class="text-slate-400">간격:</label>
+                <input type="number" id="r2_lookupStep" value="1" min="1" step="1" oninput="recalculateAll()"
+                  class="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono-num text-xs">
+                <button type="button" onclick="exportLookupCSV(2)" class="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-medium flex items-center gap-1 transition">
+                  <i class="fa-solid fa-download"></i> CSV
+                </button>
+              </div>
+            </div>
+            <div class="overflow-x-auto max-h-64">
+              <table class="w-full text-left border-collapse text-xs font-mono-num">
+                <thead class="sticky top-0 bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th class="py-2 px-4">p/o + Ingot wt (kg)</th>
+                    <th class="py-2 px-4">Remaining Melt (kg)</th>
+                    <th class="py-2 px-4">Adding Si (kg)</th>
+                    <th class="py-2 px-4 text-emerald-400">Adding Dopant (g)</th>
+                  </tr>
+                </thead>
+                <tbody id="r2_lookupBody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 3RD RUN PANEL ==================== -->
+    <section id="runPanel_3" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 3rd Run 입력 -->
+        <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-layer-group text-purple-400"></i> 3rd Run 리차지 조건 (Recharge)
+            </h2>
+            <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+              <input type="checkbox" id="r3_inherit" checked onchange="recalculateAll()" class="rounded bg-slate-800 border-slate-600 text-cyan-500">
+              2nd Run 잔류량 자동 연동
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 p-3 bg-slate-950/80 border border-slate-800 rounded-xl">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Remaining Melt Wt (kg)</label>
+              <input type="number" id="r3_remMelt" value="220.0" step="0.1" oninput="recalculateAll()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-purple-300 font-mono-num text-sm outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">잔류 도펀트 환산량 (3rd Alloy g)</label>
+              <input type="number" id="r3_resDopant" value="15.00" step="0.01" oninput="recalculateAll()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-emerald-300 font-mono-num text-sm outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">3rd Target Charge (kg)</label>
+              <input type="number" id="r3_charge" value="440" step="1" oninput="recalculateAll()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Adding Si Weight (kg)</label>
+              <input type="text" id="r3_addingSi" value="220.0" readonly
+                class="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2 text-amber-300 font-mono-num font-semibold cursor-not-allowed">
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs text-slate-400">Diameter (mm)</label>
+                <div class="flex items-center gap-1 text-[10px]">
+                  <button type="button" onclick="setDiamOffset(3, 0)" id="r3_offsetBtn_0" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition">+0</button>
+                  <button type="button" onclick="setDiamOffset(3, 7)" id="r3_offsetBtn_7" class="px-1.5 py-0.5 rounded bg-cyan-900/70 text-cyan-300 border border-cyan-700 font-semibold transition">+7</button>
+                  <input type="number" id="r3_diamOffset" value="7" step="1" oninput="syncOffsetButtons(3); recalculateAll()"
+                    class="w-10 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-center text-cyan-300 font-mono-num outline-none" title="보정값(mm) 직접 입력">
+                </div>
+              </div>
+              <div class="relative">
+                <input type="number" id="r3_diameter" value="380" step="1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3 pr-20 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+                <span id="r3_effDiamBadge" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono-num text-cyan-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">= 387mm</span>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs text-slate-400">Taper Weight (kg)</label>
+                <button type="button" id="r3_taperModeBtn" onclick="toggleTaperMode(3)"
+                  class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/60 hover:bg-slate-700 text-cyan-300 border border-cyan-700 transition">
+                  각도 계산 (°)
+                </button>
+              </div>
+              <div id="r3_taperDirectWrap" class="hidden">
+                <input type="number" id="r3_taper" value="13.81" step="0.01" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+              </div>
+              <div id="r3_taperAngleWrap" class="space-y-1.5">
+                <div class="flex items-center gap-1.5">
+                  <input type="number" id="r3_taperAngle" value="38" step="0.5" min="1" max="89" oninput="recalculateAll()"
+                    class="w-20 bg-slate-950 border border-cyan-700 rounded-xl px-2.5 py-2 text-cyan-300 font-mono-num text-sm focus:ring-2 focus:ring-cyan-500 outline-none" title="Crown 각도 (°) - 기본 38°">
+                  <span class="text-xs text-slate-400">°</span>
+                  <span id="r3_taperCalcDisplay" class="flex-1 text-right text-xs font-mono-num text-emerald-400 font-bold">13.81 kg (H: 151.2mm)</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-cyan-300 font-semibold mb-1">3rd Target Res. @ Body Start (Ω·cm)</label>
+              <input type="number" id="r3_targetRes" value="1.000" step="0.001" oninput="recalculateAll()"
+                class="w-full bg-slate-950 border border-cyan-700 rounded-xl px-3 py-2 text-cyan-300 font-mono-num font-bold focus:ring-2 focus:ring-cyan-400 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Recycle Dopant (g)</label>
+              <input type="number" id="r3_recycle" value="0" step="0.01" oninput="recalculateAll()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono-num focus:ring-2 focus:ring-cyan-500 outline-none">
+            </div>
+          </div>
+
+          <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-300">Adding Dopant 형태</span>
+              <div class="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                <label class="px-2.5 py-1 rounded cursor-pointer has-[:checked]:bg-cyan-600 has-[:checked]:text-white text-slate-400">
+                  <input type="radio" name="r3_mode" value="alloy" checked onchange="toggleRunMode(3, 'alloy')" class="hidden"> Master Alloy
+                </label>
+                <label class="px-2.5 py-1 rounded cursor-pointer has-[:checked]:bg-cyan-600 has-[:checked]:text-white text-slate-400">
+                  <input type="radio" name="r3_mode" value="pure" onchange="toggleRunMode(3, 'pure')" class="hidden"> Pure
+                </label>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <label class="text-slate-400">Adding Alloy Conc. (ppb)</label>
+                <span id="r3_conc_exp" class="text-[11px] text-purple-300 font-mono-num">≈ 2.70E+06 ppb</span>
+              </div>
+              <input type="text" id="r3_conc" value="2,700,000" oninput="recalculateAll()" onblur="formatConcInput(this); recalculateAll()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono-num text-sm focus:ring-2 focus:ring-cyan-500 outline-none">
+            </div>
+          </div>
+
+          <!-- 3rd Run Last 종료 / 중량 밸런스 (Charge - Crown - Body - Tail - Remain = 0) -->
+          <div class="p-3.5 bg-rose-950/20 border border-rose-800/50 rounded-xl space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-flag-checkered"></i> 3rd Last 종료 중량 밸런스 (Remain 설정)
+              </h3>
+              <span class="text-[10px] text-rose-400/90 font-mono-num">Charge - Crown - Body - Tail - Remain = 0</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Tail 각도 (°)</label>
+                <input type="number" id="r3_tailAngle" value="63.96" step="0.1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-amber-300 font-mono-num">
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Tail Wt (kg)</label>
+                <input type="text" id="r3_tailWt" value="36.20" readonly
+                  class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-2 py-1 text-amber-300 font-mono-num font-bold cursor-not-allowed">
+              </div>
+              <div>
+                <label class="block text-[11px] text-rose-300 font-semibold mb-1">Remain (kg)</label>
+                <input type="number" id="r3_lastRemain" value="80.0" step="1" oninput="recalculateAll()"
+                  class="w-full bg-slate-950 border border-rose-600/70 rounded-lg px-2 py-1 text-rose-300 font-mono-num font-bold">
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-rose-900/40 text-[11px] font-mono-num">
+              <div>
+                <span class="text-slate-400 block">최대 Body Wt</span>
+                <span id="r3_maxBodyWt" class="text-emerald-400 font-bold">310.0 kg</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Target Length</span>
+                <span id="r3_maxBodyLen" class="text-cyan-300 font-bold">1,132 mm</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Target End 비저항</span>
+                <span id="r3_endRes" class="text-yellow-300 font-bold">0.8100 Ω·cm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3rd Run 결과 & 룩업 테이블 -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="rounded-2xl bg-gradient-to-br from-purple-950/70 via-slate-900 to-cyan-950/70 border-2 border-purple-500/50 p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold uppercase tracking-widest text-purple-300 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle"></i> 3rd Run 추가 투입 도펀트 (Net Adding Dopant)
+              </span>
+              <span id="r3_modeBadge" class="text-xs px-2.5 py-1 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700 font-mono">Master Alloy</span>
+            </div>
+            <div class="flex flex-wrap items-baseline gap-4 mb-4">
+              <div class="font-mono-num text-5xl font-extrabold text-white" id="r3_outAddingWeight">0.000</div>
+              <span class="text-2xl font-bold text-purple-400 font-mono">g</span>
+              <div class="text-sm text-slate-400 font-mono-num pl-3 border-l border-slate-700" id="r3_outTotalNeeded">
+                (총 필요량: 0.00 g - 잔류 환산: 0.00 g)
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 pt-4 border-t border-slate-800/80 text-xs">
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400">3rd Dopant ppb input</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r3_outPpb">0.00 ppb</div>
+              </div>
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400">3rd 초기 융액 [C]o (g=0%)</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r3_outCo">0.00E+00 /cm³</div>
+              </div>
+              <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-slate-400">3rd Body Start [C]s</div>
+                <div class="font-mono-num text-sm font-bold text-cyan-300 mt-0.5" id="r3_outCs">0.00E+00 /cm³</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3rd Run Lookup Table -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-900">
+              <h3 class="text-xs font-bold text-purple-300 flex items-center gap-2">
+                <i class="fa-solid fa-table-list"></i> 2nd (p/o wt + Ingot wt) 별 3rd Adding Dopant 조건표
+              </h3>
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <label class="text-slate-400">시작:</label>
+                <input type="number" id="r3_lookupStart" value="90" step="1" oninput="recalculateAll()"
+                  class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono-num text-xs">
+                <label class="text-slate-400">끝:</label>
+                <input type="number" id="r3_lookupEnd" value="440" step="1" oninput="recalculateAll()"
+                  class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono-num text-xs">
+                <label class="text-slate-400">간격:</label>
+                <input type="number" id="r3_lookupStep" value="1" min="1" step="1" oninput="recalculateAll()"
+                  class="w-14 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 font-mono-num text-xs">
+                <button type="button" onclick="exportLookupCSV(3)" class="px-2.5 py-1 rounded bg-purple-700 hover:bg-purple-600 text-white text-[11px] font-medium flex items-center gap-1 transition">
+                  <i class="fa-solid fa-download"></i> CSV
+                </button>
+              </div>
+            </div>
+            <div class="overflow-x-auto max-h-64">
+              <table class="w-full text-left border-collapse text-xs font-mono-num">
+                <thead class="sticky top-0 bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th class="py-2 px-4">p/o + Ingot wt (kg)</th>
+                    <th class="py-2 px-4">Remaining Melt (kg)</th>
+                    <th class="py-2 px-4">Adding Si (kg)</th>
+                    <th class="py-2 px-4 text-purple-300">Adding Dopant (g)</th>
+                  </tr>
+                </thead>
+                <tbody id="r3_lookupBody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: TARGET RES -> DOPANT TABLE (400mm 미만 / 이상) ==================== -->
+    <section id="runPanel_4" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 좌측 조건 설정 패널 (Seg. Coeff 별도 칸 포함) -->
+        <div class="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+            <i class="fa-solid fa-sliders text-amber-400"></i> Target Res별 Middle Alloy 조견표 설정
+          </h2>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-950/90 border-2 border-amber-500/60 rounded-xl p-3">
+              <label class="block text-xs text-amber-300 font-bold mb-1">Target Res (Ω·cm)</label>
+              <input type="number" id="t4_targetRes" value="0.0127" step="0.0001" oninput="calcTab4()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono-num font-bold text-base focus:ring-2 focus:ring-amber-400 outline-none">
+            </div>
+            <div class="bg-slate-950/90 border-2 border-cyan-500/60 rounded-xl p-3">
+              <label class="block text-xs text-cyan-300 font-bold mb-1">Seg. Coeff. (k₀ 전용)</label>
+              <input type="number" id="t4_k0" value="0.83" step="0.01" oninput="calcTab4()"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-cyan-300 font-mono-num font-bold text-base focus:ring-2 focus:ring-cyan-400 outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-slate-400">이동도 μ (cm²/V·s)</label>
+                <span class="text-[10px] text-cyan-400 font-mono-num">P:480 / N:1500</span>
+              </div>
+              <input type="number" id="t4_mu" value="480" step="10" oninput="calcTab4()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-cyan-300 font-mono-num font-bold outline-none">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Seed 기준 ppb input</label>
+              <input type="text" id="t4_ppbOut" value="24,708 ppb" readonly
+                class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-2.5 py-1.5 text-emerald-400 font-mono-num font-bold">
+            </div>
+          </div>
+
+          <!-- 400mm 미만 설정 -->
+          <div class="p-3.5 bg-amber-950/20 border border-amber-700/40 rounded-xl space-y-2.5">
+            <div class="text-xs font-bold text-amber-300 flex items-center justify-between">
+              <span><i class="fa-solid fa-circle-dot mr-1"></i> 400mm 미만 그룹</span>
+              <span id="t4_taperUnderBadge" class="text-[11px] font-mono-num text-amber-400/90">Crown: 13.07 kg</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <div>
+                <label class="block text-slate-400 mb-1">기준 Diameter (mm)</label>
+                <input type="number" id="t4_diamUnder" value="380" step="1" oninput="calcTab4()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-yellow-300 font-mono-num font-bold">
+              </div>
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-slate-400">Alloy Conc.</label>
+                  <span id="t4_ppbUnder_exp" class="text-[10px] text-amber-400 font-mono-num">≈ 3.94E+08</span>
+                </div>
+                <input type="text" id="t4_ppbUnder" value="393,500,000" oninput="calcTab4()" onblur="formatConcInput(this); calcTab4()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-yellow-300 font-mono-num font-bold">
+              </div>
+            </div>
+          </div>
+
+          <!-- 400mm 이상 설정 -->
+          <div class="p-3.5 bg-blue-950/20 border border-blue-700/40 rounded-xl space-y-2.5">
+            <div class="text-xs font-bold text-blue-300 flex items-center justify-between">
+              <span><i class="fa-solid fa-circle-dot mr-1"></i> 400mm 이상 그룹</span>
+              <span id="t4_taperOverBadge" class="text-[11px] font-mono-num text-blue-400/90">Crown: 22.76 kg</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <div>
+                <label class="block text-slate-400 mb-1">기준 Diameter (mm)</label>
+                <input type="number" id="t4_diamOver" value="457" step="1" oninput="calcTab4()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-yellow-300 font-mono-num font-bold">
+              </div>
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-slate-400">Alloy Conc.</label>
+                  <span id="t4_ppbOver_exp" class="text-[10px] text-blue-400 font-mono-num">≈ 3.94E+08</span>
+                </div>
+                <input type="text" id="t4_ppbOver" value="393,500,000" oninput="calcTab4()" onblur="formatConcInput(this); calcTab4()"
+                  class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-yellow-300 font-mono-num font-bold">
+              </div>
+            </div>
+          </div>
+
+          <!-- Charge 범위 설정 -->
+          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">시작 Charge (kg)</label>
+              <input type="number" id="t4_cStart" value="180" step="10" oninput="calcTab4()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono-num">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">종료 Charge (kg)</label>
+              <input type="number" id="t4_cEnd" value="350" step="10" oninput="calcTab4()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono-num">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">간격 (kg)</label>
+              <input type="number" id="t4_cStep" value="10" min="1" step="5" oninput="calcTab4()"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono-num">
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측 400mm 미만 / 400mm 이상 비교 테이블 -->
+        <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 400mm 미만 표 -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-300">Diameter 400mm 미만 (<span id="t4_lblUnder">380</span>mm)</span>
+              <span class="text-[11px] text-slate-400 font-mono-num">Middle Alloy (g)</span>
+            </div>
+            <div class="overflow-y-auto max-h-[460px]">
+              <table class="w-full text-center border-collapse text-xs font-mono-num">
+                <thead class="sticky top-0 bg-slate-900 text-slate-300 border-b border-slate-800">
+                  <tr>
+                    <th class="py-2.5 px-4 bg-blue-950/50 text-blue-200 border-r border-slate-800">Charge량 (kg)</th>
+                    <th class="py-2.5 px-4 bg-emerald-950/50 text-emerald-300">Middle alloy (g)</th>
+                  </tr>
+                </thead>
+                <tbody id="t4_bodyUnder" class="divide-y divide-slate-800/60"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 400mm 이상 표 -->
+          <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
+            <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <span class="text-xs font-bold text-blue-300">Diameter 400mm 이상 (<span id="t4_lblOver">457</span>mm)</span>
+              <span class="text-[11px] text-slate-400 font-mono-num">Middle Alloy (g)</span>
+            </div>
+            <div class="overflow-y-auto max-h-[460px]">
+              <table class="w-full text-center border-collapse text-xs font-mono-num">
+                <thead class="sticky top-0 bg-slate-900 text-slate-300 border-b border-slate-800">
+                  <tr>
+                    <th class="py-2.5 px-4 bg-blue-950/50 text-blue-200 border-r border-slate-800">Charge량 (kg)</th>
+                    <th class="py-2.5 px-4 bg-emerald-950/50 text-emerald-300">Middle alloy (g)</th>
+                  </tr>
+                </thead>
+                <tbody id="t4_bodyOver" class="divide-y divide-slate-800/60"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1st Run <-> Target Res 조견표 <-> Dopant 역산 교차 검증 배너 -->
+      <div class="bg-slate-900/95 border border-cyan-500/40 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div class="space-y-1">
+          <div class="font-bold text-cyan-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-check-double"></i> 1st Run ↔ 조견표 ↔ Dopant 역산 단일 수식 동기화 검증
+          </div>
+          <div id="t4_crossCheckText" class="text-slate-300 font-mono-num"></div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="syncFrom1stRunToTabs()" class="px-3 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-copy"></i> 1st Run 조건을 현재 탭에 불러와 비교
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: DOPANT WT -> TARGET LENGTH & RESISTIVITY ==================== -->
+    <section id="runPanel_5" class="hidden space-y-6">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-ruler-combined text-emerald-400"></i>
+              Charge &amp; Dopant 투입량 기반 Target Length 및 위치별 비저항 시뮬레이터
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              <span class="text-cyan-300 font-mono-num">Body Max Weight = Charge - (Taper + Tail + Remain)</span> 식을 통해 최대 Body Length를 자동 산출합니다.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="syncFrom1stRunToTabs()" class="px-3 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-copy"></i> 1st Run 조건(450kg, 34.85g) 불러와 검증
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-1.5">
+              <label class="text-slate-400">이동도 μ:</label>
+              <input type="number" id="t5_mu" value="480" step="10" oninput="calcTab5()"
+                class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-cyan-300 font-mono-num font-bold">
+            </div>
+            <!-- Taper(Crown) 각도/직접입력 연동 -->
+            <div class="flex items-center gap-1.5 bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-800">
+              <label class="text-cyan-300 font-semibold">Crown:</label>
+              <input type="number" id="t5_crownAngle" value="38" step="0.5" oninput="updateTab5TaperAndTailFromDiam(); calcTab5()"
+                class="w-14 bg-slate-950 border border-cyan-700/70 rounded px-1 py-0.5 text-cyan-300 font-mono-num text-center" title="Crown 원뿔 각도 (°)">
+              <span class="text-slate-400">° =</span>
+              <input type="number" id="t5_taperKg" value="13.81" step="0.01" oninput="calcTab5()"
+                class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono-num font-bold" title="직접 수정도 가능합니다">
+              <span class="text-slate-400">kg</span>
+            </div>
+            <!-- Tail 각도/직접입력 연동 (387mm일 때 63.96° = 36.20kg) -->
+            <div class="flex items-center gap-1.5 bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-800">
+              <label class="text-amber-300 font-semibold">Tail:</label>
+              <input type="number" id="t5_tailAngle" value="63.96" step="0.1" oninput="updateTab5TaperAndTailFromDiam(); calcTab5()"
+                class="w-16 bg-slate-950 border border-amber-700/70 rounded px-1 py-0.5 text-amber-300 font-mono-num text-center" title="Tail 원뿔 각도 (63.96°일 때 387mm=36.2kg)">
+              <span class="text-slate-400">° =</span>
+              <input type="number" id="t5_tailKg" value="36.20" step="0.1" oninput="calcTab5()"
+                class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-amber-300 font-mono-num font-bold" title="직접 수정도 가능합니다">
+              <span class="text-slate-400">kg</span>
+            </div>
+            <!-- Remain 융액 무게 변경 -->
+            <div class="flex items-center gap-1.5 bg-slate-900/90 px-2 py-1 rounded-lg border border-rose-800/50">
+              <label class="text-rose-300 font-semibold">Remain(잔류):</label>
+              <input type="number" id="t5_remainKg" value="80.0" step="1" oninput="syncTab5Remain('bar'); calcTab5()"
+                class="w-16 bg-slate-950 border border-rose-600/70 rounded px-1.5 py-0.5 text-rose-300 font-mono-num font-bold">
+              <span class="text-slate-400">kg</span>
+            </div>
+            <div class="flex items-center gap-1.5 border-l border-slate-800 pl-2">
+              <label class="text-slate-400">중간1(mm):</label>
+              <input type="number" id="t5_midLen1" value="400" step="10" oninput="syncTab5MidInputs('bar', 1); calcTab5()"
+                class="w-16 bg-slate-900 border border-amber-600/70 rounded px-1.5 py-1 text-amber-300 font-mono-num font-bold">
+            </div>
+            <div class="flex items-center gap-1.5">
+              <label class="text-slate-400">중간2(mm):</label>
+              <input type="number" id="t5_midLen2" value="800" step="10" oninput="syncTab5MidInputs('bar', 2); calcTab5()"
+                class="w-16 bg-slate-900 border border-cyan-600/70 rounded px-1.5 py-1 text-cyan-300 font-mono-num font-bold">
+            </div>
+          </div>
+          <div id="t5_seedInfoBadge" class="text-cyan-300 font-mono-num font-semibold"></div>
+        </div>
+
+        <!-- 중량 밸런스 요약 바 (Charge = Taper + Body + Tail + Remain) -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs font-mono-num bg-slate-950/90 p-3 rounded-xl border border-slate-800">
+          <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
+            <div class="text-slate-400 text-[11px]">총 Charge 중량</div>
+            <div id="t5_balCharge" class="text-white font-bold text-sm">560.0 kg</div>
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
+            <div class="text-slate-400 text-[11px]">① Taper (Crown 원뿔)</div>
+            <div id="t5_balTaper" class="text-cyan-300 font-bold text-sm">21.71 kg</div>
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-700/50">
+            <div class="text-emerald-300 text-[11px]">② 최대 Body 중량 (Length)</div>
+            <div id="t5_balBody" class="text-emerald-400 font-bold text-sm">425.4 kg (1,148 mm)</div>
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
+            <div class="text-slate-400 text-[11px]">③ Tail 원뿔 중량</div>
+            <div id="t5_balTail" class="text-amber-300 font-bold text-sm">36.20 kg</div>
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-rose-950/30 border border-rose-800/50 flex items-center justify-between">
+            <div>
+              <div class="text-rose-300 text-[11px]">④ Remain (잔류량 수정)</div>
+              <div class="flex items-center gap-1 mt-0.5">
+                <input type="number" id="t5_balRemainInput" value="80.0" step="1" oninput="syncTab5Remain('card'); calcTab5()"
+                  class="w-16 bg-slate-950 border border-rose-600/70 rounded px-1.5 py-0.5 text-rose-300 font-bold text-sm outline-none">
+                <span class="text-rose-300 font-bold text-xs">kg</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 엑셀 스타일 비교 시트 -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-center border-collapse text-xs sm:text-sm font-mono-num border border-slate-700 rounded-xl overflow-hidden">
+            <thead>
+              <tr class="bg-slate-950 text-slate-200 border-b border-slate-700">
+                <th rowspan="2" class="py-3 px-3 border-r border-slate-700">Charge (kg)</th>
+                <th rowspan="2" class="py-3 px-3 border-r border-slate-700">Diameter (mm)<br><span class="text-[10px] text-cyan-400 font-normal">(예: 387 / 450)</span></th>
+                <th rowspan="2" class="py-3 px-3 border-r border-slate-700 text-rose-300">Remain (kg)</th>
+                <th rowspan="2" class="py-3 px-3 border-r border-slate-700">Dopant Alloy Conc. (ppb)</th>
+                <th rowspan="2" class="py-3 px-3 border-r border-slate-700 text-cyan-300">Seg. Coeff. (k₀)</th>
+                <th rowspan="2" class="py-3 px-3 border-r border-slate-700 text-amber-300">Dopant wt (g)</th>
+                <th colspan="4" class="py-2 px-4 bg-slate-900 text-emerald-300 border-b border-slate-700">Length (mm) 4구간 비저항 (Ω·cm) <span class="text-[11px] text-slate-400 font-normal">(중간 2개 위치 직접 수정 가능)</span></th>
+              </tr>
+              <tr class="bg-slate-900 text-slate-300 border-b border-slate-700">
+                <th class="py-2 px-3 border-r border-slate-700">0 mm (Body 시작)</th>
+                <th class="py-1.5 px-3 border-r border-slate-700 text-amber-300">
+                  <div class="flex items-center justify-center gap-1">
+                    <input type="number" id="t5_hdrMidInput1" value="400" step="10" oninput="syncTab5MidInputs('table', 1); calcTab5()"
+                      class="w-16 text-center bg-slate-950 border border-amber-500/60 rounded px-1 py-0.5 text-amber-300 font-mono-num font-bold focus:ring-1 focus:ring-amber-400 outline-none">
+                    <span>mm (중간 1)</span>
+                  </div>
+                </th>
+                <th class="py-1.5 px-3 border-r border-slate-700 text-cyan-300">
+                  <div class="flex items-center justify-center gap-1">
+                    <input type="number" id="t5_hdrMidInput2" value="800" step="10" oninput="syncTab5MidInputs('table', 2); calcTab5()"
+                      class="w-16 text-center bg-slate-950 border border-cyan-500/60 rounded px-1 py-0.5 text-cyan-300 font-mono-num font-bold focus:ring-1 focus:ring-cyan-400 outline-none">
+                    <span>mm (중간 2)</span>
+                  </div>
+                </th>
+                <th class="py-2 px-3 text-emerald-400 font-bold"><span id="t5_hdrTarget">1,148</span> mm (Target Length)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-700">
+              <!-- Row 1 (Yellow highlight style) -->
+              <tr class="bg-slate-900/60">
+                <td rowspan="2" class="p-2.5 border-r border-slate-700 bg-slate-950/60">
+                  <input type="number" id="t5_charge" value="560" step="10" oninput="calcTab5()"
+                    class="w-20 text-center bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white font-bold text-base focus:ring-2 focus:ring-cyan-500 outline-none">
+                </td>
+                <td rowspan="2" class="p-2.5 border-r border-slate-700 bg-slate-950/60">
+                  <input type="number" id="t5_diam" value="387" step="1" oninput="updateTab5TaperAndTailFromDiam(); calcTab5()"
+                    class="w-20 text-center bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-white font-bold text-base focus:ring-2 focus:ring-cyan-500 outline-none">
+                  <div class="flex justify-center gap-1 mt-1 text-[10px]">
+                    <button type="button" onclick="setTab5DiamPreset(387)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-900 text-cyan-300 border border-slate-700">387mm</button>
+                    <button type="button" onclick="setTab5DiamPreset(450)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-cyan-900 text-cyan-300 border border-slate-700">450mm</button>
+                  </div>
+                </td>
+                <td rowspan="2" class="p-2.5 border-r border-slate-700 bg-slate-950/60">
+                  <input type="number" id="t5_tblRemainInput" value="80.0" step="1" oninput="syncTab5Remain('table'); calcTab5()"
+                    class="w-20 text-center bg-slate-900 border border-rose-600/70 rounded-lg px-2 py-2 text-rose-300 font-bold text-base focus:ring-2 focus:ring-rose-500 outline-none">
+                </td>
+                <td class="p-2.5 border-r border-slate-700 bg-yellow-500/10">
+                  <input type="text" id="t5_conc1" value="394,000,000" oninput="calcTab5()" onblur="formatConcInput(this); calcTab5()"
+                    class="w-36 text-center bg-slate-950 border border-yellow-600/60 rounded-lg px-2 py-1 text-yellow-300 font-bold">
+                  <div id="t5_conc1_exp" class="text-[11px] text-yellow-400/80 font-mono-num mt-1">≈ 3.94E+08 ppb</div>
+                </td>
+                <td class="p-2.5 border-r border-slate-700 bg-yellow-500/10">
+                  <input type="number" id="t5_k01" value="0.83" step="0.01" oninput="calcTab5()"
+                    class="w-20 text-center bg-slate-950 border border-yellow-600/60 rounded-lg px-2 py-1.5 text-yellow-300 font-bold">
+                </td>
+                <td class="p-2.5 border-r border-slate-700 bg-yellow-500/10">
+                  <input type="number" id="t5_wt1" value="45" step="0.5" oninput="calcTab5()"
+                    class="w-20 text-center bg-slate-950 border border-yellow-600/60 rounded-lg px-2 py-1.5 text-yellow-300 font-bold">
+                </td>
+                <td id="t5_r1_0" class="p-2.5 border-r border-slate-700 font-bold text-white text-base">0.0099</td>
+                <td id="t5_r1_mid1" class="p-2.5 border-r border-slate-700 font-bold text-amber-300 text-base">0.0093</td>
+                <td id="t5_r1_mid2" class="p-2.5 border-r border-slate-700 font-bold text-cyan-300 text-base">0.0084</td>
+                <td id="t5_r1_end" class="p-2.5 font-bold text-emerald-400 text-base">0.0074</td>
+              </tr>
+              <!-- Row 2 (Blue highlight style) -->
+              <tr class="bg-slate-900/60">
+                <td class="p-2.5 border-r border-slate-700 bg-blue-500/10">
+                  <input type="text" id="t5_conc2" value="379,000,000" oninput="calcTab5()" onblur="formatConcInput(this); calcTab5()"
+                    class="w-36 text-center bg-slate-950 border border-blue-500/60 rounded-lg px-2 py-1 text-blue-300 font-bold">
+                  <div id="t5_conc2_exp" class="text-[11px] text-blue-400/80 font-mono-num mt-1">≈ 3.79E+08 ppb</div>
+                </td>
+                <td class="p-2.5 border-r border-slate-700 bg-blue-500/10">
+                  <input type="number" id="t5_k02" value="0.80" step="0.01" oninput="calcTab5()"
+                    class="w-20 text-center bg-slate-950 border border-blue-500/60 rounded-lg px-2 py-1.5 text-blue-300 font-bold">
+                </td>
+                <td class="p-2.5 border-r border-slate-700 bg-blue-500/10">
+                  <input type="number" id="t5_wt2" value="50" step="0.5" oninput="calcTab5()"
+                    class="w-20 text-center bg-slate-950 border border-blue-500/60 rounded-lg px-2 py-1.5 text-blue-300 font-bold">
+                </td>
+                <td id="t5_r2_0" class="p-2.5 border-r border-slate-700 font-bold text-white text-base">0.0095</td>
+                <td id="t5_r2_mid1" class="p-2.5 border-r border-slate-700 font-bold text-amber-300 text-base">0.0089</td>
+                <td id="t5_r2_mid2" class="p-2.5 border-r border-slate-700 font-bold text-cyan-300 text-base">0.0079</td>
+                <td id="t5_r2_end" class="p-2.5 font-bold text-emerald-400 text-base">0.0068</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Length 구간별 상세 비저항 프로파일 표 -->
+        <div class="bg-slate-950/70 border border-slate-800 rounded-xl overflow-hidden">
+          <div class="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-300"><i class="fa-solid fa-list-ol text-cyan-400 mr-1.5"></i>0 mm ~ Target Length 구간별 비저항 상세 분포</span>
+            <span id="t5_summaryInfo" class="text-xs font-mono-num text-emerald-400"></span>
+          </div>
+          <div class="overflow-x-auto max-h-60">
+            <table class="w-full text-center border-collapse text-xs font-mono-num">
+              <thead class="sticky top-0 bg-slate-900 text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th class="py-2 px-3">Body Length (mm)</th>
+                  <th class="py-2 px-3">누적 결정 무게 (kg)</th>
+                  <th class="py-2 px-3">고화율 (g)</th>
+                  <th class="py-2 px-3 text-yellow-300">Case A 비저항 (Ω·cm)</th>
+                  <th class="py-2 px-3 text-blue-300">Case B 비저항 (Ω·cm)</th>
+                </tr>
+              </thead>
+              <tbody id="t5_detailBody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: FORMULA & CALCULATION DEFINITIONS ==================== -->
+    <section id="runPanel_6" class="hidden space-y-6">
+      <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-6 space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-base md:text-lg font-bold text-white flex items-center gap-2.5">
+              <i class="fa-solid fa-square-root-variable text-purple-400"></i>
+              CZ 도펀트 &amp; 리차지 계산 수식 정의서 (Calculation Formula Reference)
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">
+              본 시뮬레이터의 모든 페이지(1st~3rd Run, Target Res 조견표, Dopant 역산)에 공통 적용된 물리 수식과 현재 입력값 기준 실시간 대입 결과입니다.
+            </p>
+          </div>
+          <span class="text-xs px-3 py-1.5 rounded-xl bg-purple-950/60 border border-purple-700/60 text-purple-300 font-mono-num">
+            실시간 입력값 연동 중
+          </span>
+        </div>
+
+        <!-- 1. 기본 물리 상수 및 Pure 등가 농도 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-700 flex items-center justify-center text-[11px]">1</span>
+              기본 물리 상수 및 실리콘 원자 밀도 ($N_{\text{Si}}$)
+            </h3>
+            <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+              <p class="text-slate-400">단위 부피($1\text{ cm}^3$)당 실리콘 원자 수 $N_{\text{Si}}$와 순수 도펀트(Pure)의 원자비 등가 농도는 다음과 같이 정의됩니다.</p>
+              <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
+                <div>&bull; 전하량 ($q$) = <span class="text-cyan-300">1.60E-19 C</span></div>
+                <div>&bull; 실리콘 원자량 ($M_{\text{Si}}$) = <span class="text-cyan-300">28.0855 g/mol</span></div>
+                <div>&bull; 아보가드로 수 ($N_A$) = <span class="text-cyan-300">6.02214E+23 atoms/mol</span></div>
+                <div class="pt-1 border-t border-slate-800 text-emerald-300 font-semibold">
+                  $N_{\text{Si}} = \frac{d_{\text{Si}}}{M_{\text{Si}}} \times N_A$
+                </div>
+                <div class="text-amber-300">
+                  $\text{Pure Dopant Conc. (ppb)} = 10^9 \times \frac{M_{\text{Si}}}{M_{\text{dopant}}} = 10^9 \times \frac{28.0855}{M_{\text{dopant}}}$
+                </div>
+              </div>
+              <!-- P-type / N-type 5대 도펀트 Pure 등가 ppb 계산식 표 -->
+              <div class="overflow-x-auto rounded-lg border border-slate-800">
+                <table class="w-full text-left border-collapse text-[11px] font-mono-num">
+                  <thead class="bg-slate-900 text-slate-300 border-b border-slate-800">
+                    <tr>
+                      <th class="py-1.5 px-2.5">원소 (Type)</th>
+                      <th class="py-1.5 px-2.5">원자량 ($M$)</th>
+                      <th class="py-1.5 px-2.5">계산식 ($10^9 \times \frac{28.0855}{M}$)</th>
+                      <th class="py-1.5 px-2.5 text-amber-300">Pure 등가 ppb (지수)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/70 bg-slate-950/90 text-slate-300">
+                    <tr>
+                      <td class="py-1.5 px-2.5 font-semibold text-blue-300">B (Boron, P)</td>
+                      <td class="py-1.5 px-2.5">10.811</td>
+                      <td class="py-1.5 px-2.5">10⁹ × (28.0855 / 10.811)</td>
+                      <td class="py-1.5 px-2.5 text-amber-300 font-bold">2,597,863,287 (2.60E+09)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-1.5 px-2.5 font-semibold text-blue-300">Ga (Gallium, P)</td>
+                      <td class="py-1.5 px-2.5">69.723</td>
+                      <td class="py-1.5 px-2.5">10⁹ × (28.0855 / 69.723)</td>
+                      <td class="py-1.5 px-2.5 text-amber-300 font-bold">402,815,427 (4.03E+08)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-1.5 px-2.5 font-semibold text-emerald-300">P (Phosphorus, N)</td>
+                      <td class="py-1.5 px-2.5">30.974</td>
+                      <td class="py-1.5 px-2.5">10⁹ × (28.0855 / 30.974)</td>
+                      <td class="py-1.5 px-2.5 text-amber-300 font-bold">906,744,366 (9.07E+08)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-1.5 px-2.5 font-semibold text-emerald-300">As (Arsenic, N)</td>
+                      <td class="py-1.5 px-2.5">74.922</td>
+                      <td class="py-1.5 px-2.5">10⁹ × (28.0855 / 74.922)</td>
+                      <td class="py-1.5 px-2.5 text-amber-300 font-bold">374,863,191 (3.75E+08)</td>
+                    </tr>
+                    <tr>
+                      <td class="py-1.5 px-2.5 font-semibold text-emerald-300">Sb (Antimony, N)</td>
+                      <td class="py-1.5 px-2.5">121.760</td>
+                      <td class="py-1.5 px-2.5">10⁹ × (28.0855 / 121.760)</td>
+                      <td class="py-1.5 px-2.5 text-amber-300 font-bold">230,662,779 (2.31E+08)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div id="f6_box1" class="p-2.5 bg-cyan-950/20 border border-cyan-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
+            </div>
+          </div>
+
+          <!-- 2. 유효 직경 & Crown(Taper) 무게 및 Body 단위무게 -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-700 flex items-center justify-center text-[11px]">2</span>
+              유효 직경 ($D_{\text{eff}}$), Crown(Taper) 원뿔 무게 및 Body 단위무게
+            </h3>
+            <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+              <p class="text-slate-400">잉곳 직경 보정값($+0, +7\text{ mm}$)이 반영된 유효 직경과 경사각($\theta = 38^\circ$)의 탄젠트($\tan$)로 원뿔 높이와 무게를 산출합니다.</p>
+              <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
+                <div>&bull; 유효 직경: $D_{\text{eff}} = D_{\text{input}} + \text{Offset}\ (\text{mm})$, 반지름 $R = \frac{D_{\text{eff}}}{2}$</div>
+                <div>&bull; Crown 원뿔 높이: $H(\text{mm}) = \frac{\tan(\text{rad}(\theta)) \times D_{\text{eff}}}{2}$</div>
+                <div class="text-emerald-300 font-semibold">
+                  $\text{Taper Wt (kg)} = \frac{1}{3} \pi \left(\frac{R}{10}\right)^2 \left(\frac{H}{10}\right) \times d_{\text{Si}} \div 1000$
+                </div>
+                <div class="text-amber-300">
+                  $\text{Body 단위무게 (kg/cm)} = \pi \left(\frac{R}{10}\right)^2 \times 1\text{ cm} \times d_{\text{Si}} \div 1000$
+                </div>
+              </div>
+              <div id="f6_box2" class="p-2.5 bg-cyan-950/20 border border-cyan-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
+            </div>
+          </div>
+
+          <!-- 3. 목표 비저항 -> 농도([C]s, [C]o) -> Dopant ppb input -> 투입 중량(g) -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-emerald-950 border border-emerald-700 flex items-center justify-center text-[11px]">3</span>
+              Body Start 비저항($\rho$) $\rightarrow$ 농도($[C]_s, [C]_o$) $\rightarrow$ 이론 원자비 ppb &amp; 투입량(g)
+            </h3>
+            <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+              <p class="text-slate-400">Crown(Taper) 무게만큼 고화된 직후인 Body Start($g_{\text{taper}} = W_{\text{taper}} / W_{\text{charge}}$)에서 Target Res($\rho$)가 되도록 초기 융액 농도 $[C]_o$와 이론 원자비 ppb를 산출합니다.</p>
+              <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
+                <div>① Body Start 고체 농도: $[C]_s(g_{\text{taper}}) = \frac{1}{q \times \mu \times \rho}\ (\text{atoms/cm}^3)$</div>
+                <div>② 초기 융액 농도 ($g=0\%$ 역산): $[C]_o = \frac{[C]_s(g_{\text{taper}})}{k_0 \cdot (1 - g_{\text{taper}})^{k_0 - 1}}$</div>
+                <div class="text-cyan-300 font-semibold">
+                  ③ 이론 원자비 $\text{Dopant ppb input} = \frac{[C]_o}{N_{\text{Si}}} \times 10^9$
+                </div>
+                <div class="text-emerald-300 font-bold">
+                  ④ $\text{Dopant Weight (g)} = \frac{\text{Dopant ppb input}}{\text{Alloy Conc. (ppb)}} \times \text{Charge Wt (g)}$
+                </div>
+              </div>
+              <div id="f6_box3" class="p-2.5 bg-emerald-950/20 border border-emerald-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
+            </div>
+          </div>
+
+          <!-- 4. Scheil 방정식 축방향 비저항 프로파일 -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-emerald-950 border border-emerald-700 flex items-center justify-center text-[11px]">4</span>
+              고화율($g$) 및 길이($L$)에 따른 Scheil 비저항 변화식
+            </h3>
+            <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+              <p class="text-slate-400">결정이 성장함에 따라 편석계수($k_0 < 1$)에 의해 잔류 융액이 농축되고 비저항이 점진적으로 낮아집니다.</p>
+              <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
+                <div>① 누적 결정 중량: $W(L) = \text{Taper Wt} + L(\text{cm}) \times \text{단위무게(kg/cm)}$</div>
+                <div>② 고화율 (Solidified Fraction): $g = \frac{W(L)}{\text{Charge Weight}}$</div>
+                <div class="text-cyan-300 font-semibold">
+                  ③ 고화율 $g$에서의 고체 농도: $[C]_s(g) = k_0 \cdot [C]_o \cdot (1 - g)^{k_0 - 1}$
+                </div>
+                <div class="text-emerald-300 font-bold">
+                  ④ 고화율 $g$에서의 비저항: $\rho(g) = \frac{1}{q \times \mu \times [C]_s(g)} = \rho_{\text{seed}} \cdot (1 - g)^{1 - k_0}$
+                </div>
+              </div>
+              <div id="f6_box4" class="p-2.5 bg-emerald-950/20 border border-emerald-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
+            </div>
+          </div>
+
+          <!-- 5. 2nd / 3rd Run 리차지(Recharge) 잔류 도펀트 및 추가 투입량 -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-amber-950 border border-amber-700 flex items-center justify-center text-[11px]">5</span>
+              2nd / 3rd Run 리차지 잔류 도펀트 (Pure 변환 없는 직접 환산식)
+            </h3>
+            <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+              <p class="text-slate-400">Pure 무게로 변환할 필요 없이, 이전 Run의 잔류율 $(1 - g_{\text{out}})^{k_0}$과 Alloy 농도(ppb) 비율만으로 즉시 잔류 Alloy 환산량(g)을 구합니다.</p>
+              <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
+                <div>① 인출 고화율: $g_{\text{out}} = \frac{W_{\text{ingot}} + W_{\text{p/o}}}{W_{\text{charge, prev}}}$</div>
+                <div>② 1st Alloy 기준 잔류량: $W_{\text{res, 1st}} = W_{\text{init, 1st}} \times (1 - g_{\text{out}})^{k_0}$</div>
+                <div class="text-cyan-300 font-semibold">
+                  ③ 2nd Alloy 기준 잔류 환산량(g): $W_{\text{res, 2nd}} = W_{\text{res, 1st}} \times \frac{\text{1st Alloy Conc. (ppb)}}{\text{2nd Alloy Conc. (ppb)}}$
+                </div>
+                <div class="text-amber-300 font-bold">
+                  ④ 추가 투입량: $\text{Net Adding (g)} = W_{\text{total, 2nd}} - W_{\text{res, 2nd}} - W_{\text{recycle}}$
+                </div>
+              </div>
+              <div id="f6_box5" class="p-2.5 bg-amber-950/20 border border-amber-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
+            </div>
+          </div>
+
+          <!-- 6. Target Length 산출 및 Dopant 역산 (Tab 5) -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h3 class="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-purple-950 border border-purple-700 flex items-center justify-center text-[11px]">6</span>
+              중량 밸런스 기반 Target Length 및 역산 비저항
+            </h3>
+            <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+              <p class="text-slate-400">총 장입량에서 Taper, Tail, Remain 중량을 제외한 최대 Body 중량으로 Target Length를 계산합니다.</p>
+              <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
+                <div>① 중량 보존식: $\text{Charge} = W_{\text{Taper}} + W_{\text{Body, max}} + W_{\text{Tail}} + W_{\text{Remain}}$</div>
+                <div class="text-purple-300 font-semibold">
+                  ② $\text{Target Length (mm)} = \frac{\text{Charge} - (W_{\text{Taper}} + W_{\text{Tail}} + W_{\text{Remain}})}{\text{단위무게 (kg/mm)}}$
+                </div>
+                <div>③ 투입 도펀트 역산: $\text{ppb}_{\text{in}} = \frac{W_{\text{dopant}}(\text{g})}{\text{Charge}(\text{g})} \times \text{Alloy Conc. (ppb)}$</div>
+                <div class="text-emerald-300">
+                  ④ 초기 융액 역산: $[C]_o = \frac{(\text{ppb}_{\text{in}} / 10^9) \times N_{\text{Si}}}{k_0}$
+                </div>
+              </div>
+              <div id="f6_box6" class="p-2.5 bg-purple-950/20 border border-purple-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 공통: 활성화된 Run의 축방향 비저항 프로파일 차트 & 테이블 (Tab 4 조견표 및 Tab 6 수식정의서에서는 숨김) -->
+    <div id="bottomChartAndTableSection" class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+      <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-cyan-400"></i>
+            <span id="chartRunLabel">1st Run</span> 축방향 비저항 프로파일
+          </h3>
+          <span class="text-[11px] text-slate-500">Scheil Equation</span>
+        </div>
+        <div class="w-full h-64 relative">
+          <canvas id="resistivityChart"></canvas>
+        </div>
+      </div>
+
+      <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+        <div class="px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+          <h3 class="text-xs font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-table-cells text-emerald-400"></i>
+            <span id="tableRunLabel">1st Run</span> 고화율(g)별 세부 데이터
+          </h3>
+          <button onclick="exportToCSV()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-file-excel"></i> CSV 내보내기
+          </button>
+        </div>
+        <div class="overflow-x-auto max-h-64 flex-1">
+          <table class="w-full text-left border-collapse text-xs font-mono-num">
+            <thead class="sticky top-0 bg-slate-950 text-slate-300 border-b border-slate-800">
+              <tr>
+                <th class="py-2.5 px-4">고화율 (g)</th>
+                <th class="py-2.5 px-4">Body Length</th>
+                <th class="py-2.5 px-4">Weight (kg)</th>
+                <th class="py-2.5 px-4 text-cyan-300">Resistivity (Ω·cm)</th>
+                <th class="py-2.5 px-4">[C]s (/cm³)</th>
+                <th class="py-2.5 px-4">[C]o (/cm³)</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-slate-800 bg-slate-950 py-4 px-6 text-center text-xs text-slate-500">
+    CZ Silicon Multi-Run Dopant &amp; Recharge Calculator &bull; Scheil Normal Freezing Model
+  </footer>
+
+  <script>
+    const CONSTANTS = {
+      q: 1.60e-19, // 엑셀 시트 기준 Electron volt = 1.60E-19
+      siAtomicWeight: 28.0855,
+      avogadro: 6.02214076e23
+    };
+
+    const PRESETS = {
+      P: {
+        defaultElement: 'B',
+        elements: {
+          B:  { name: 'Boron',    k0: 0.78,  M: 10.811, mu: 480,  res: 2.166 },
+          Ga: { name: 'Gallium',  k0: 0.008, M: 69.723, mu: 480,  res: 1.500 }
+        }
+      },
+      N: {
+        defaultElement: 'P',
+        elements: {
+          P:  { name: 'Phosphorus', k0: 0.35,  M: 30.974, mu: 1500, res: 1.200 },
+          As: { name: 'Arsenic',    k0: 0.30,  M: 74.922, mu: 1500, res: 0.800 },
+          Sb: { name: 'Antimony',   k0: 0.023, M: 121.76, mu: 1500, res: 0.020 }
+        }
+      }
+    };
+
+    let currentType = 'P';
+    let currentElement = 'B';
+    let activeRunTab = 1;
+    let runModes = { 1: 'alloy', 2: 'alloy', 3: 'alloy' };
+    let taperModes = { 1: 'angle', 2: 'angle', 3: 'angle' };
+    let chartInstance = null;
+    let lastRunProfiles = { 1: null, 2: null, 3: null };
+    let lastTab5ChartData = null;
+
+    function parseConcInput(val) {
+      if (typeof val === 'number') return val;
+      const cleaned = String(val).replace(/,/g, '').trim();
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+
+    function formatConcInput(el) {
+      const raw = el.value.trim();
+      if (!raw || /[eE]/.test(raw)) return;
+      const num = parseConcInput(raw);
+      if (num > 0) {
+        el.value = num.toLocaleString('en-US', { maximumFractionDigits: 4 });
+      }
+    }
+
+    function setDiamOffset(runNum, offsetVal) {
+      const inputEl = document.getElementById(`r${runNum}_diamOffset`);
+      if (inputEl) {
+        inputEl.value = offsetVal;
+      }
+      syncOffsetButtons(runNum);
+      recalculateAll();
+    }
+
+    function syncOffsetButtons(runNum) {
+      const val = parseFloat(document.getElementById(`r${runNum}_diamOffset`)?.value);
+      const btn0 = document.getElementById(`r${runNum}_offsetBtn_0`);
+      const btn7 = document.getElementById(`r${runNum}_offsetBtn_7`);
+      const activeCls = "px-1.5 py-0.5 rounded bg-cyan-900/70 text-cyan-300 border border-cyan-700 font-semibold transition";
+      const inactiveCls = "px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition";
+      if (btn0) btn0.className = (val === 0) ? activeCls : inactiveCls;
+      if (btn7) btn7.className = (val === 7) ? activeCls : inactiveCls;
+    }
+
+    function toggleTaperMode(runNum) {
+      const nextMode = taperModes[runNum] === 'direct' ? 'angle' : 'direct';
+      taperModes[runNum] = nextMode;
+      const btn = document.getElementById(`r${runNum}_taperModeBtn`);
+      const directWrap = document.getElementById(`r${runNum}_taperDirectWrap`);
+      const angleWrap = document.getElementById(`r${runNum}_taperAngleWrap`);
+
+      if (nextMode === 'angle') {
+        btn.innerText = '각도 계산 (°)';
+        btn.classList.add('bg-cyan-900/60', 'border-cyan-700');
+        directWrap.classList.add('hidden');
+        angleWrap.classList.remove('hidden');
+      } else {
+        btn.innerText = '직접 입력';
+        btn.classList.remove('bg-cyan-900/60', 'border-cyan-700');
+        angleWrap.classList.add('hidden');
+        directWrap.classList.remove('hidden');
+      }
+      recalculateAll();
+    }
+
+    function getEffectiveDiameter(runNum) {
+      const baseDiam = parseFloat(document.getElementById(`r${runNum}_diameter`)?.value) || 0;
+      const offset = parseFloat(document.getElementById(`r${runNum}_diamOffset`)?.value) || 0;
+      const effDiam = Math.max(1, baseDiam + offset);
+      const badge = document.getElementById(`r${runNum}_effDiamBadge`);
+      if (badge) {
+        badge.innerText = `= ${effDiam}mm`;
+      }
+      return effDiam;
+    }
+
+    function getEffectiveTaperWeight(runNum, effDiamMm, siDensity) {
+      if (taperModes[runNum] === 'angle') {
+        const angleDeg = parseFloat(document.getElementById(`r${runNum}_taperAngle`).value) || 38;
+        const clampedAngle = Math.max(1, Math.min(89, angleDeg));
+        const rad = (clampedAngle * Math.PI) / 180;
+        const radiusMm = effDiamMm / 2;
+        // Crown 원뿔 높이(mm) = (tan(rad(각도)) * 유효직경) / 2
+        const heightMm = (Math.tan(rad) * effDiamMm) / 2;
+        const radiusCm = radiusMm / 10;
+        const heightCm = heightMm / 10;
+        // 순수 원뿔 부피(cm³) = (1/3) * π * R² * H
+        const volumeCm3 = (1 / 3) * Math.PI * radiusCm * radiusCm * heightCm;
+        const weightKg = (volumeCm3 * siDensity) / 1000;
+        document.getElementById(`r${runNum}_taperCalcDisplay`).innerText = `${weightKg.toFixed(2)} kg (H:${heightMm.toFixed(1)}mm)`;
+        document.getElementById(`r${runNum}_taper`).value = weightKg.toFixed(2);
+        return weightKg;
+      }
+      return parseFloat(document.getElementById(`r${runNum}_taper`).value) || 0;
+    }
+
+    function setType(type) {
+      currentType = type;
+      currentElement = PRESETS[type].defaultElement;
+      const pBtn = document.getElementById('typePBtn');
+      const nBtn = document.getElementById('typeNBtn');
+
+      if (type === 'P') {
+        pBtn.className = "px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-blue-600 text-white shadow-md shadow-blue-600/30";
+        nBtn.className = "px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200";
+      } else {
+        nBtn.className = "px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 bg-emerald-600 text-white shadow-md shadow-emerald-600/30";
+        pBtn.className = "px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-slate-200";
+      }
+
+      initPresets();
+      loadElementParams(currentElement);
+      recalculateAll();
+    }
+
+    function initPresets() {
+      const container = document.getElementById('elementPresetContainer');
+      container.innerHTML = '';
+      const elements = PRESETS[currentType].elements;
+      for (let key in elements) {
+        const el = elements[key];
+        const btn = document.createElement('button');
+        btn.className = `px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+          key === currentElement
+            ? 'bg-cyan-600 text-white shadow'
+            : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+        }`;
+        btn.innerText = `${key} (${el.name})`;
+        btn.onclick = () => {
+          currentElement = key;
+          initPresets();
+          loadElementParams(key);
+          recalculateAll();
+        };
+        container.appendChild(btn);
+      }
+    }
+
+    function loadElementParams(key) {
+      const data = PRESETS[currentType].elements[key];
+      if (!data) return;
+      document.getElementById('globalK0').value = data.k0;
+      document.getElementById('globalMu').value = data.mu;
+      if (document.getElementById('t4_mu')) document.getElementById('t4_mu').value = data.mu;
+      if (document.getElementById('t5_mu')) document.getElementById('t5_mu').value = data.mu;
+      document.getElementById('r1_targetRes').value = data.res;
+      [1, 2, 3].forEach(r => {
+        if (runModes[r] === 'pure') {
+          const purePpb = 1e9 * (CONSTANTS.siAtomicWeight / data.M);
+          document.getElementById(`r${r}_conc`).value = purePpb.toExponential(3).toUpperCase();
+        }
+      });
+    }
+
+    function toggleRunMode(runNum, mode) {
+      runModes[runNum] = mode;
+      const concInput = document.getElementById(`r${runNum}_conc`);
+      const badge = document.getElementById(`r${runNum}_modeBadge`);
+      const elemData = PRESETS[currentType].elements[currentElement];
+      const purePpb = 1e9 * (CONSTANTS.siAtomicWeight / elemData.M);
+      const hint = document.getElementById(`r${runNum}_pureHint`);
+
+      if (mode === 'pure') {
+        concInput.value = purePpb.toExponential(3).toUpperCase();
+        concInput.readOnly = true;
+        concInput.classList.add('opacity-70', 'cursor-not-allowed');
+        if (badge) badge.innerText = `Pure (${currentElement})`;
+        if (hint) {
+          hint.innerText = `Pure 등가: ${purePpb.toExponential(2).toUpperCase()} ppb`;
+          hint.classList.remove('hidden');
+        }
+      } else {
+        concInput.readOnly = false;
+        concInput.classList.remove('opacity-70', 'cursor-not-allowed');
+        concInput.value = runNum === 1 ? '1,990,000' : '2,700,000';
+        if (badge) badge.innerText = 'Master Alloy';
+        if (hint) hint.classList.add('hidden');
+      }
+      recalculateAll();
+    }
+
+    function switchRunTab(tabNum) {
+      activeRunTab = tabNum;
+      [1, 2, 3, 4, 5, 6].forEach(n => {
+        const panel = document.getElementById(`runPanel_${n}`);
+        const btn = document.getElementById(`tabBtn_${n}`);
+        if (!panel || !btn) return;
+        if (n === tabNum) {
+          panel.classList.remove('hidden');
+          btn.className = "px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-cyan-600 text-white shadow-lg shadow-cyan-600/25 flex items-center gap-2";
+        } else {
+          panel.classList.add('hidden');
+          btn.className = "px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-400 hover:text-white flex items-center gap-2";
+        }
+      });
+
+      const bottomSec = document.getElementById('bottomChartAndTableSection');
+      if (bottomSec) {
+        // Target Res 조견표(Tab 4)와 수식 정의서(Tab 6)에서는 하단 그래프 및 고화율 테이블 숨김
+        if (tabNum === 4 || tabNum === 6) {
+          bottomSec.classList.add('hidden');
+        } else {
+          bottomSec.classList.remove('hidden');
+        }
+      }
+
+      if (tabNum <= 3) {
+        const label = tabNum === 1 ? '1st Run' : (tabNum === 2 ? '2nd Run' : '3rd Run');
+        document.getElementById('chartRunLabel').innerText = label;
+        document.getElementById('tableRunLabel').innerText = label;
+        if (lastRunProfiles[tabNum]) {
+          renderProfileTableAndChart(lastRunProfiles[tabNum]);
+        }
+      } else if (tabNum === 5) {
+        document.getElementById('chartRunLabel').innerText = 'Dopant 역산 (Case A / B)';
+        document.getElementById('tableRunLabel').innerText = 'Dopant 역산 (0mm ~ Target Length)';
+        calcTab5();
+      }
+    }
+
+    function calcCrownWeightByDiam(diamMm, siDensity, angleDeg = 38) {
+      const rad = (angleDeg * Math.PI) / 180;
+      const radiusMm = diamMm / 2;
+      const heightMm = (Math.tan(rad) * diamMm) / 2;
+      const volumeCm3 = (1 / 3) * Math.PI * Math.pow(radiusMm / 10, 2) * (heightMm / 10);
+      return (volumeCm3 * siDensity) / 1000;
+    }
+
+    // Tail 무게도 Crown과 동일한 원뿔 공식 적용 (기본 각도 63.96°일 때 직경 387mm -> 정확히 36.20 kg)
+    function calcTailWeightByDiam(diamMm, siDensity, tailAngleDeg = 63.96) {
+      return calcCrownWeightByDiam(diamMm, siDensity, tailAngleDeg);
+    }
+
+    // =========================================================================
+    // [공통 물리 엔진] 1st Run, Target Res 조견표(Tab 4), Dopant 역산(Tab 5) 100% 동일 수식
+    // - Si 원자 밀도 N_Si = (d_Si / 28.0855) * N_A (d_Si=2.33일 때 4.99603E+22)
+    // - 엑셀 시트 전체 공통 관계식:
+    //   Seed(g=0%) 고체 농도 Cs(0) = [C]o * k0
+    //   Dopant ppb input = (Cs(0) / N_Si) * 10^9 = ([C]o * k0 / N_Si) * 10^9
+    //   Dopant Weight (g) = (Dopant ppb input / Alloy Conc. ppb) * Charge_Weight(g)
+    //   고화율 g에서의 고체 농도 Cs(g) = k0 * [C]o * (1 - g)^(k0 - 1)
+    //   고화율 g에서의 비저항 Res(g) = 1 / (q * mu * Cs(g))
+    // =========================================================================
+    function getUnifiedNSi(siDensity) {
+      return (siDensity / CONSTANTS.siAtomicWeight) * CONSTANTS.avogadro;
+    }
+
+    function calcPpbFromCoUnified(Co, k0, siDensity) {
+      const nSi = getUnifiedNSi(siDensity);
+      const ppbMode = document.getElementById('globalPpbMode') ? document.getElementById('globalPpbMode').value : 'standard';
+      if (ppbMode === 'excel') {
+        return ((Co * k0) / nSi) * 1e9;
+      }
+      // 이론 원자비 기준: Dopant ppb input = ([C]o / N_Si) * 10^9
+      return (Co / nSi) * 1e9;
+    }
+
+    function calcCoFromPpbUnified(ppbInput, k0, siDensity) {
+      const nSi = getUnifiedNSi(siDensity);
+      const ppbMode = document.getElementById('globalPpbMode') ? document.getElementById('globalPpbMode').value : 'standard';
+      if (ppbMode === 'excel') {
+        return k0 > 0 ? ((ppbInput / 1e9) * nSi) / k0 : 0;
+      }
+      // 이론 원자비 기준: [C]o = (Dopant ppb input / 10^9) * N_Si
+      return (ppbInput / 1e9) * nSi;
+    }
+
+    // 1st Run 조건을 Tab 4(조견표)와 Tab 5(Dopant 역산)에 그대로 복사하여 100% 일치 여부를 즉시 검증
+    function syncFrom1stRunToTabs() {
+      const r1Charge = parseFloat(document.getElementById('r1_charge').value) || 450;
+      const r1EffDiam = getEffectiveDiameter(1);
+      const siDensity = parseFloat(document.getElementById('globalDensity').value) || 2.33;
+      const r1Taper = getEffectiveTaperWeight(1, r1EffDiam, siDensity);
+      const r1TargetRes = parseFloat(document.getElementById('r1_targetRes').value) || 2.166;
+      const r1Conc = parseConcInput(document.getElementById('r1_conc').value) || 1990000;
+      const k0 = parseFloat(document.getElementById('globalK0').value) || 0.78;
+      const mu = parseFloat(document.getElementById('globalMu').value) || 480;
+      const r1WtG = parseFloat(document.getElementById('r1_outWeight').innerText) || 0;
+
+      const targetPos = document.getElementById('globalTargetPos') ? document.getElementById('globalTargetPos').value : 'body';
+      const gTaper = r1Charge > 0 ? Math.min(0.95, r1Taper / r1Charge) : 0;
+      // 1st Run이 Body Start 기준이면 Target Res가 곧 Body 0mm 비저항
+      const r1Body0Res = targetPos === 'body' ? r1TargetRes : r1TargetRes * Math.pow(1 - gTaper, 1 - k0);
+
+      // Tab 4에 반영 (400mm 이상 칸에 450mm, Charge 시작을 450kg으로 맞춰서 동일한 도펀트 g이 나오는지 확인)
+      document.getElementById('t4_targetRes').value = r1Body0Res.toFixed(4);
+      document.getElementById('t4_k0').value = k0;
+      document.getElementById('t4_mu').value = mu;
+      document.getElementById('t4_diamOver').value = r1EffDiam;
+      document.getElementById('t4_ppbOver').value = r1Conc.toLocaleString('en-US');
+      document.getElementById('t4_cStart').value = r1Charge;
+      document.getElementById('t4_cEnd').value = r1Charge + 50;
+
+      // Tab 5에 반영 (Case A에 1st Run 조건 그대로 입력)
+      document.getElementById('t5_charge').value = r1Charge;
+      document.getElementById('t5_diam').value = r1EffDiam;
+      updateTab5TaperAndTailFromDiam();
+      document.getElementById('t5_mu').value = mu;
+      document.getElementById('t5_conc1').value = r1Conc.toLocaleString('en-US');
+      document.getElementById('t5_k01').value = k0;
+      document.getElementById('t5_wt1').value = r1WtG.toFixed(3);
+
+      recalculateAll();
+    }
+
+    function calcTab4() {
+      const targetRes = parseFloat(document.getElementById('t4_targetRes')?.value) || 0.0127;
+      const k0 = parseFloat(document.getElementById('t4_k0')?.value) || 0.83;
+      const muInput = parseFloat(document.getElementById('t4_mu')?.value) || 480;
+      const diamUnder = parseFloat(document.getElementById('t4_diamUnder')?.value) || 380;
+      const diamOver = parseFloat(document.getElementById('t4_diamOver')?.value) || 457;
+      const ppbUnder = parseConcInput(document.getElementById('t4_ppbUnder')?.value) || 393500000;
+      const ppbOver = parseConcInput(document.getElementById('t4_ppbOver')?.value) || 393500000;
+
+      const expUnderEl = document.getElementById('t4_ppbUnder_exp');
+      if (expUnderEl) expUnderEl.innerText = `≈ ${ppbUnder.toExponential(2).toUpperCase()}`;
+      const expOverEl = document.getElementById('t4_ppbOver_exp');
+      if (expOverEl) expOverEl.innerText = `≈ ${ppbOver.toExponential(2).toUpperCase()}`;
+
+      const cStart = parseFloat(document.getElementById('t4_cStart')?.value) || 180;
+      const cEnd = parseFloat(document.getElementById('t4_cEnd')?.value) || 350;
+      const cStep = Math.max(1, parseFloat(document.getElementById('t4_cStep')?.value) || 10);
+
+      document.getElementById('t4_lblUnder').innerText = diamUnder;
+      document.getElementById('t4_lblOver').innerText = diamOver;
+
+      const siDensity = parseFloat(document.getElementById('globalDensity')?.value) || 2.33;
+      const taperKgUnder = calcCrownWeightByDiam(diamUnder, siDensity, 38);
+      const taperKgOver = calcCrownWeightByDiam(diamOver, siDensity, 38);
+
+      document.getElementById('t4_taperUnderBadge').innerText = `Crown: ${taperKgUnder.toFixed(2)} kg`;
+      document.getElementById('t4_taperOverBadge').innerText = `Crown: ${taperKgOver.toFixed(2)} kg`;
+
+      const CsTarget = (targetRes > 0 && muInput > 0) ? 1 / (CONSTANTS.q * muInput * targetRes) : 0;
+      const CoSeedBase = k0 > 0 ? CsTarget / k0 : 0;
+      const basePpbSeed = calcPpbFromCoUnified(CoSeedBase, k0, siDensity);
+      document.getElementById('t4_ppbOut').value = `${Math.round(basePpbSeed).toLocaleString()} ppb`;
+
+      const bodyUnder = document.getElementById('t4_bodyUnder');
+      const bodyOver = document.getElementById('t4_bodyOver');
+      if (!bodyUnder || !bodyOver) return;
+      bodyUnder.innerHTML = '';
+      bodyOver.innerHTML = '';
+
+      let sampleUnderG = 0;
+      let sampleOverG = 0;
+      let count = 0;
+      for (let c = cStart; c <= cEnd && count < 300; c += cStep, count++) {
+        const gUnder = Math.min(0.95, taperKgUnder / c);
+        const CoUnder = k0 > 0 ? CsTarget / (k0 * Math.pow(1 - gUnder, k0 - 1)) : 0;
+        const ppbInputUnder = calcPpbFromCoUnified(CoUnder, k0, siDensity);
+        const wtUnder = (ppbInputUnder / ppbUnder) * (c * 1000);
+
+        const gOver = Math.min(0.95, taperKgOver / c);
+        const CoOver = k0 > 0 ? CsTarget / (k0 * Math.pow(1 - gOver, k0 - 1)) : 0;
+        const ppbInputOver = calcPpbFromCoUnified(CoOver, k0, siDensity);
+        const wtOver = (ppbInputOver / ppbOver) * (c * 1000);
+
+        if (count === 0) {
+          sampleUnderG = wtUnder;
+          sampleOverG = wtOver;
+        }
+
+        const trU = document.createElement('tr');
+        trU.className = "hover:bg-slate-800/40 transition";
+        trU.innerHTML = `
+          <td class="py-2 px-4 bg-blue-950/20 text-blue-200 font-semibold border-r border-slate-800">${c}</td>
+          <td class="py-2 px-4 bg-emerald-950/20 text-emerald-300 font-bold">${wtUnder.toFixed(2)}</td>
+        `;
+        bodyUnder.appendChild(trU);
+
+        const trO = document.createElement('tr');
+        trO.className = "hover:bg-slate-800/40 transition";
+        trO.innerHTML = `
+          <td class="py-2 px-4 bg-blue-950/20 text-blue-200 font-semibold border-r border-slate-800">${c}</td>
+          <td class="py-2 px-4 bg-emerald-950/20 text-emerald-300 font-bold">${wtOver.toFixed(2)}</td>
+        `;
+        bodyOver.appendChild(trO);
+      }
+
+      const crossText = document.getElementById('t4_crossCheckText');
+      if (crossText) {
+        crossText.innerHTML = `현재 첫 행(${cStart}kg) 기준: <span class="text-amber-300">${diamUnder}mm &rarr; ${sampleUnderG.toFixed(3)} g</span> | <span class="text-blue-300">${diamOver}mm &rarr; ${sampleOverG.toFixed(3)} g</span> (1st Run 및 Dopant 역산 탭과 100% 동일 수식)`;
+      }
+    }
+
+    function updateTab5TaperAndTailFromDiam() {
+      const diam = parseFloat(document.getElementById('t5_diam')?.value) || 387;
+      const siDensity = parseFloat(document.getElementById('globalDensity')?.value) || 2.33;
+      const crownAngle = parseFloat(document.getElementById('t5_crownAngle')?.value) || 38;
+      const tailAngle = parseFloat(document.getElementById('t5_tailAngle')?.value) || 63.96;
+
+      const taperKg = calcCrownWeightByDiam(diam, siDensity, crownAngle);
+      const tailKg = calcTailWeightByDiam(diam, siDensity, tailAngle);
+
+      const taperInput = document.getElementById('t5_taperKg');
+      const tailInput = document.getElementById('t5_tailKg');
+      if (taperInput) taperInput.value = taperKg.toFixed(2);
+      if (tailInput) tailInput.value = tailKg.toFixed(2);
+    }
+
+    function setTab5DiamPreset(diamVal) {
+      const diamInput = document.getElementById('t5_diam');
+      if (diamInput) diamInput.value = diamVal;
+      updateTab5TaperAndTailFromDiam();
+      calcTab5();
+    }
+
+    function syncTab5Remain(source) {
+      const barInput = document.getElementById('t5_remainKg');
+      const cardInput = document.getElementById('t5_balRemainInput');
+      const tblInput = document.getElementById('t5_tblRemainInput');
+      let val = 80;
+      if (source === 'bar' && barInput) val = barInput.value;
+      else if (source === 'card' && cardInput) val = cardInput.value;
+      else if (source === 'table' && tblInput) val = tblInput.value;
+
+      if (barInput && source !== 'bar') barInput.value = val;
+      if (cardInput && source !== 'card') cardInput.value = val;
+      if (tblInput && source !== 'table') tblInput.value = val;
+    }
+
+    function syncTab5MidInputs(source, idx) {
+      const barInput = document.getElementById(`t5_midLen${idx}`);
+      const hdrInput = document.getElementById(`t5_hdrMidInput${idx}`);
+      if (!barInput || !hdrInput) return;
+      if (source === 'bar') {
+        hdrInput.value = barInput.value;
+      } else {
+        barInput.value = hdrInput.value;
+      }
+    }
+
+    function calcTab5() {
+      const charge = parseFloat(document.getElementById('t5_charge')?.value) || 560;
+      const diam = parseFloat(document.getElementById('t5_diam')?.value) || 387;
+      const muInput = parseFloat(document.getElementById('t5_mu')?.value) || 480;
+      const taperKg = parseFloat(document.getElementById('t5_taperKg')?.value) || 13.81;
+      const tailKg = parseFloat(document.getElementById('t5_tailKg')?.value) || 36.20;
+      const remainKg = parseFloat(document.getElementById('t5_remainKg')?.value) || 80.0;
+      const midLen1 = parseFloat(document.getElementById('t5_midLen1')?.value) || 400;
+      const midLen2 = parseFloat(document.getElementById('t5_midLen2')?.value) || 800;
+
+      const conc1 = parseConcInput(document.getElementById('t5_conc1')?.value) || 3.94e8;
+      const k01 = parseFloat(document.getElementById('t5_k01')?.value) || 0.83;
+      const wt1 = parseFloat(document.getElementById('t5_wt1')?.value) || 45;
+
+      const conc2 = parseConcInput(document.getElementById('t5_conc2')?.value) || 3.79e8;
+      const k02 = parseFloat(document.getElementById('t5_k02')?.value) || 0.80;
+      const wt2 = parseFloat(document.getElementById('t5_wt2')?.value) || 50;
+
+      // 천단위 콤마 입력값 하단에 지수 표현(예: ≈ 3.94E+08 ppb) 동시 표시
+      const exp1El = document.getElementById('t5_conc1_exp');
+      if (exp1El) exp1El.innerText = `≈ ${conc1.toExponential(2).toUpperCase()} ppb`;
+      const exp2El = document.getElementById('t5_conc2_exp');
+      if (exp2El) exp2El.innerText = `≈ ${conc2.toExponential(2).toUpperCase()} ppb`;
+
+      const siDensity = parseFloat(document.getElementById('globalDensity')?.value) || 2.33;
+      const radiusMm = diam / 2;
+
+      // mm당 Body 무게 (kg/mm)
+      const kgPerMm = (Math.PI * Math.pow(radiusMm / 10, 2) * 0.1 * siDensity) / 1000;
+
+      // Target Length 식: Body Max Weight = Charge - (Taper + Tail + Remain)
+      const targetBodyKg = Math.max(0, charge - taperKg - tailKg - remainKg);
+      const targetLenMm = kgPerMm > 0 ? Math.round(targetBodyKg / kgPerMm) : 0;
+
+      // 상단 중량 밸런스 카드 업데이트
+      document.getElementById('t5_balCharge').innerText = `${charge.toFixed(1)} kg`;
+      document.getElementById('t5_balTaper').innerText = `${taperKg.toFixed(2)} kg`;
+      document.getElementById('t5_balBody').innerText = `${targetBodyKg.toFixed(1)} kg (${targetLenMm.toLocaleString()} mm)`;
+      document.getElementById('t5_balTail').innerText = `${tailKg.toFixed(2)} kg`;
+
+      document.getElementById('t5_hdrTarget').innerText = targetLenMm.toLocaleString();
+
+      // 1st Run과 100% 동일한 역산 물리 엔진 적용
+      const calcPointData = (wtG, concPpb, k0Val, lenMm, isSeed = false) => {
+        const ppbIn = (wtG / (charge * 1000)) * concPpb;
+        const Co = calcCoFromPpbUnified(ppbIn, k0Val, siDensity);
+        const solidWtKg = isSeed ? 0 : (taperKg + lenMm * kgPerMm);
+        const g = charge > 0 ? Math.min(0.98, solidWtKg / charge) : 0;
+        const Cs = k0Val * Co * Math.pow(1 - g, k0Val - 1);
+        const Cmelt = Co * Math.pow(1 - g, k0Val - 1);
+        const res = Cs > 0 ? 1 / (CONSTANTS.q * muInput * Cs) : 0;
+        return { res, Cs, Cmelt, solidWtKg, g };
+      };
+
+      const seedResA = calcPointData(wt1, conc1, k01, 0, true).res;
+      const body0ResA = calcPointData(wt1, conc1, k01, 0, false).res;
+      const mid1ResA = calcPointData(wt1, conc1, k01, midLen1, false).res;
+      const mid2ResA = calcPointData(wt1, conc1, k01, midLen2, false).res;
+      const endResA = calcPointData(wt1, conc1, k01, targetLenMm, false).res;
+
+      const body0ResB = calcPointData(wt2, conc2, k02, 0, false).res;
+      const mid1ResB = calcPointData(wt2, conc2, k02, midLen1, false).res;
+      const mid2ResB = calcPointData(wt2, conc2, k02, midLen2, false).res;
+      const endResB = calcPointData(wt2, conc2, k02, targetLenMm, false).res;
+
+      const fmtRes = (v) => v.toFixed(4);
+
+      document.getElementById('t5_r1_0').innerText = fmtRes(body0ResA);
+      document.getElementById('t5_r1_mid1').innerText = fmtRes(mid1ResA);
+      document.getElementById('t5_r1_mid2').innerText = fmtRes(mid2ResA);
+      document.getElementById('t5_r1_end').innerText = fmtRes(endResA);
+
+      document.getElementById('t5_r2_0').innerText = fmtRes(body0ResB);
+      document.getElementById('t5_r2_mid1').innerText = fmtRes(mid1ResB);
+      document.getElementById('t5_r2_mid2').innerText = fmtRes(mid2ResB);
+      document.getElementById('t5_r2_end').innerText = fmtRes(endResB);
+
+      const seedBadge = document.getElementById('t5_seedInfoBadge');
+      if (seedBadge) {
+        seedBadge.innerText = `Case A Seed(g=0%): ${seedResA.toFixed(4)} Ω·cm | Body 0mm: ${body0ResA.toFixed(4)} Ω·cm`;
+      }
+
+      document.getElementById('t5_summaryInfo').innerText =
+        `단위무게: ${kgPerMm.toFixed(4)}kg/mm | Crown: ${taperKg.toFixed(2)}kg | Tail: ${tailKg.toFixed(2)}kg | 최대 Body: ${targetBodyKg.toFixed(1)}kg → Target Length: ${targetLenMm.toLocaleString()}mm`;
+
+      const detailBody = document.getElementById('t5_detailBody');
+      const chartLabels = [];
+      const chartDataA = [];
+      const chartDataB = [];
+      const bottomTableRows = [];
+
+      if (detailBody) {
+        detailBody.innerHTML = '';
+        const seedA = calcPointData(wt1, conc1, k01, 0, true);
+        const seedB = calcPointData(wt2, conc2, k02, 0, true);
+        const seedTr = document.createElement('tr');
+        seedTr.className = "bg-emerald-950/30 font-bold text-emerald-300";
+        seedTr.innerHTML = `
+          <td class="py-1.5 px-3">Seed (g=0%)</td>
+          <td class="py-1.5 px-3">0.0 kg</td>
+          <td class="py-1.5 px-3">0.0%</td>
+          <td class="py-1.5 px-3 text-yellow-300">${seedA.res.toFixed(4)}</td>
+          <td class="py-1.5 px-3 text-blue-300">${seedB.res.toFixed(4)}</td>
+        `;
+        detailBody.appendChild(seedTr);
+
+        chartLabels.push('Seed(0%)');
+        chartDataA.push(seedA.res.toFixed(4));
+        chartDataB.push(seedB.res.toFixed(4));
+        bottomTableRows.push({
+          g: 0, label: 'Seed (0%)', wt: 0, res: seedA.res, cs: seedA.Cs, cmelt: seedA.Cmelt, isHighlight: false
+        });
+
+        const stepMm = Math.max(50, Math.round(targetLenMm / 10 / 50) * 50);
+        const rawPts = [0, midLen1, midLen2, targetLenMm];
+        for (let l = stepMm; l < targetLenMm; l += stepMm) rawPts.push(l);
+        const uniquePts = [...new Set(rawPts)].filter(L => L >= 0 && L <= targetLenMm).sort((a, b) => a - b);
+
+        uniquePts.forEach(L => {
+          const dA = calcPointData(wt1, conc1, k01, L, false);
+          const dB = calcPointData(wt2, conc2, k02, L, false);
+          const gPct = dA.g * 100;
+          const isHighlight = (L === 0 || L === midLen1 || L === midLen2 || L === targetLenMm);
+          const tr = document.createElement('tr');
+          tr.className = isHighlight ? "bg-cyan-950/30 font-bold" : "hover:bg-slate-800/40";
+          tr.innerHTML = `
+            <td class="py-1.5 px-3 ${isHighlight ? 'text-cyan-300' : ''}">${L.toLocaleString()} mm (${(L/10).toFixed(1)} cm)</td>
+            <td class="py-1.5 px-3">${dA.solidWtKg.toFixed(1)} kg</td>
+            <td class="py-1.5 px-3">${gPct.toFixed(1)}%</td>
+            <td class="py-1.5 px-3 text-yellow-300">${dA.res.toFixed(4)}</td>
+            <td class="py-1.5 px-3 text-blue-300">${dB.res.toFixed(4)}</td>
+          `;
+          detailBody.appendChild(tr);
+
+          chartLabels.push(`${L}mm`);
+          chartDataA.push(dA.res.toFixed(4));
+          chartDataB.push(dB.res.toFixed(4));
+          bottomTableRows.push({
+            g: gPct,
+            label: L === 0 ? '0 mm (Body Start)' : (L === targetLenMm ? `${L} mm (Target)` : `${L} mm`),
+            wt: dA.solidWtKg,
+            res: dA.res,
+            cs: dA.Cs,
+            cmelt: dA.Cmelt,
+            isHighlight
+          });
+        });
+      }
+
+      lastTab5ChartData = { chartLabels, chartDataA, chartDataB, bottomTableRows };
+
+      // 현재 활성 탭이 Dopant 역산 탭(5)일 때만 하단 차트를 Dopant 역산 기준으로 렌더링
+      if (activeRunTab === 5) {
+        renderTab5BottomChartAndTable();
+      }
+    }
+
+    function renderTab5BottomChartAndTable() {
+      if (!lastTab5ChartData) return;
+      document.getElementById('chartRunLabel').innerText = 'Dopant 역산 (Case A / Case B)';
+      document.getElementById('tableRunLabel').innerText = 'Dopant 역산 (Case A 기준)';
+
+      const tbody = document.getElementById('dataTableBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        lastTab5ChartData.bottomTableRows.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.className = r.isHighlight
+            ? "bg-cyan-950/40 font-bold border-l-2 border-cyan-400"
+            : "hover:bg-slate-800/40 transition";
+          tr.innerHTML = `
+            <td class="py-2 px-4 font-semibold">${r.g.toFixed(1)}%</td>
+            <td class="py-2 px-4 ${r.isHighlight ? 'text-cyan-300 font-bold' : 'text-slate-400'}">${r.label}</td>
+            <td class="py-2 px-4">${r.wt.toFixed(1)}</td>
+            <td class="py-2 px-4 font-bold text-yellow-300">${r.res.toFixed(4)}</td>
+            <td class="py-2 px-4 text-emerald-400">${r.cs.toExponential(2).toUpperCase()}</td>
+            <td class="py-2 px-4 text-slate-400">${r.cmelt.toExponential(2).toUpperCase()}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      if (chartInstance) {
+        chartInstance.data.labels = lastTab5ChartData.chartLabels;
+        chartInstance.data.datasets = [
+          {
+            label: 'Case A 비저항 (Ω·cm)',
+            data: lastTab5ChartData.chartDataA,
+            borderColor: '#facc15',
+            backgroundColor: 'rgba(250, 204, 21, 0.12)',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#facc15',
+            fill: true,
+            tension: 0.25
+          },
+          {
+            label: 'Case B 비저항 (Ω·cm)',
+            data: lastTab5ChartData.chartDataB,
+            borderColor: '#60a5fa',
+            backgroundColor: 'rgba(96, 165, 250, 0.08)',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#60a5fa',
+            fill: false,
+            tension: 0.25
+          }
+        ];
+        chartInstance.options.plugins.legend.display = true;
+        chartInstance.options.plugins.legend.labels = { color: '#cbd5e1', font: { size: 11 } };
+        chartInstance.update();
+      }
+    }
+
+    function resetAllDefaults() {
+      document.getElementById('r1_charge').value = 450;
+      document.getElementById('r1_diameter').value = 443;
+      setDiamOffset(1, 7);
+      document.getElementById('r1_taperAngle').value = 38;
+      document.getElementById('r1_taper').value = 21.71;
+      document.getElementById('r1_targetRes').value = 2.166;
+      document.getElementById('r1_ingotWt').value = 75;
+      document.getElementById('r1_poWt').value = 15;
+      document.getElementById('r2_charge').value = 440;
+      document.getElementById('r2_diameter').value = 380;
+      setDiamOffset(2, 7);
+      document.getElementById('r2_taperAngle').value = 38;
+      document.getElementById('r2_taper').value = 13.81;
+      document.getElementById('r2_targetRes').value = 1.235;
+      document.getElementById('r2_recycle').value = 0;
+      document.getElementById('r2_ingotWt').value = 200;
+      document.getElementById('r2_poWt').value = 20;
+      document.getElementById('r3_charge').value = 440;
+      document.getElementById('r3_diameter').value = 380;
+      setDiamOffset(3, 7);
+      document.getElementById('r3_taperAngle').value = 38;
+      document.getElementById('r3_taper').value = 13.81;
+      document.getElementById('r3_targetRes').value = 1.000;
+      document.getElementById('r3_recycle').value = 0;
+      recalculateAll();
+    }
+
+    function recalculateAll() {
+      const k0 = parseFloat(document.getElementById('globalK0').value) || 0.78;
+      const mu = parseFloat(document.getElementById('globalMu').value) || 480;
+      const siDensity = parseFloat(document.getElementById('globalDensity').value) || 2.33;
+      const targetPos = document.getElementById('globalTargetPos') ? document.getElementById('globalTargetPos').value : 'body';
+      const q = CONSTANTS.q;
+      const elemM = PRESETS[currentType].elements[currentElement].M;
+      const pureEquivPpb = 1e9 * (CONSTANTS.siAtomicWeight / elemM);
+      const nSi = getUnifiedNSi(siDensity);
+
+      // 1st Run, 2nd Run, 3rd Run, Tab 4, Tab 5 모두 동일한 통합 함수 사용
+      const getPpbFromCo = (Co, k0Val) => calcPpbFromCoUnified(Co, k0Val, siDensity);
+
+      // ================= 1ST RUN =================
+      const r1Charge = parseFloat(document.getElementById('r1_charge').value) || 0;
+      const r1Diam = getEffectiveDiameter(1);
+      const r1Taper = getEffectiveTaperWeight(1, r1Diam, siDensity);
+      const r1Res = parseFloat(document.getElementById('r1_targetRes').value) || 0;
+      const r1Conc = parseConcInput(document.getElementById('r1_conc').value) || pureEquivPpb;
+      const r1ConcExpEl = document.getElementById('r1_conc_exp');
+      if (r1ConcExpEl) {
+        r1ConcExpEl.innerText = runModes[1] === 'pure'
+          ? `Pure 등가: ${r1Conc.toExponential(2).toUpperCase()} ppb`
+          : `≈ ${r1Conc.toExponential(2).toUpperCase()} ppb`;
+      }
+
+      const r1GTaper = (targetPos === 'body' && r1Charge > 0) ? Math.min(0.95, r1Taper / r1Charge) : 0;
+      const r1Cs = (r1Res > 0 && mu > 0) ? 1 / (q * mu * r1Res) : 0;
+      // Body Start(g = Taper/Charge)에서 목표 고체 농도 r1Cs가 되도록 초기 융액 농도 [C]o 산출:
+      // [C]s(g_taper) = k0 * [C]o * (1 - g_taper)^(k0 - 1)  ==>  [C]o = [C]s / (k0 * (1 - g_taper)^(k0 - 1))
+      const r1Co = k0 > 0 ? r1Cs / (k0 * Math.pow(1 - r1GTaper, k0 - 1)) : 0;
+      const r1PpbInput = getPpbFromCo(r1Co, k0);
+      const r1WeightG = r1Conc > 0 ? (r1PpbInput / r1Conc) * (r1Charge * 1000) : 0;
+      const r1PureWeightG = (r1PpbInput / pureEquivPpb) * (r1Charge * 1000);
+
+      document.getElementById('r1_outWeight').innerText = r1WeightG.toFixed(3);
+      document.getElementById('r1_outPureWeight').innerText = `(Pure 환산: ${r1PureWeightG.toFixed(5)} g)`;
+      document.getElementById('r1_outPpb').innerText = `${r1PpbInput.toFixed(2)} ppb`;
+      document.getElementById('r1_outCo').innerText = `${r1Co.toExponential(2).toUpperCase()} /cm³`;
+      document.getElementById('r1_outCs').innerText = `${r1Cs.toExponential(2).toUpperCase()} /cm³`;
+      const csLabelEl = document.getElementById('r1_outCsLabel');
+      if (csLabelEl) {
+        csLabelEl.innerText = targetPos === 'body' ? `Body Start [C]s (g=${(r1GTaper*100).toFixed(1)}%)` : 'Seed 고체 [C]s (0%)';
+      }
+
+      const r1FormulaEl = document.getElementById('r1_formulaSteps');
+      if (r1FormulaEl) {
+        r1FormulaEl.innerHTML = `
+          <div><span class="text-slate-400">1) Crown(Taper) 제외 고화율 g_taper</span> = ${r1Taper.toFixed(2)} kg / ${r1Charge} kg = <span class="text-cyan-300 font-semibold">${(r1GTaper * 100).toFixed(2)}%</span></div>
+          <div><span class="text-slate-400">2) Body Start 고체 농도 [C]s</span> = 1 / (q × μ × ρ) = 1 / (1.60E-19 × ${mu} × ${r1Res}) = <span class="text-emerald-300 font-semibold">${r1Cs.toExponential(2).toUpperCase()} atoms/cm³</span></div>
+          <div><span class="text-slate-400">3) 초기 융액 농도 [C]o (g=0%)</span> = [C]s / [k₀ × (1 - g_taper)^(k₀ - 1)] = <span class="text-cyan-300 font-semibold">${r1Co.toExponential(2).toUpperCase()} atoms/cm³</span></div>
+          <div><span class="text-slate-400">4) 이론 원자비 Dopant ppb input</span> = ([C]o / N_Si) × 10⁹ = (${r1Co.toExponential(2).toUpperCase()} / ${nSi.toExponential(2).toUpperCase()}) × 10⁹ = <span class="text-amber-300 font-bold">${r1PpbInput.toFixed(2)} ppb</span></div>
+          <div><span class="text-slate-400">5) 모합금 투입량 (Alloy Wt)</span> = (Dopant ppb / Alloy Conc.) × Charge(g) = (${r1PpbInput.toFixed(2)} / ${r1Conc.toLocaleString()}) × ${(r1Charge * 1000).toLocaleString()}g = <span class="text-emerald-300 font-bold">${r1WeightG.toFixed(3)} g</span></div>
+          <div><span class="text-slate-400">6) 순수 원소 환산 (Pure Wt)</span> = (Dopant ppb / 10⁹) × (M_${currentElement} / M_Si) × Charge(g) = <span class="text-cyan-300 font-semibold">${r1PureWeightG.toFixed(5)} g</span></div>
+        `;
+      }
+
+      // 1st Pull Summary -> 2nd Run (Pure 변환 없이 Alloy 무게 & ppb 농도비로 직접 계산)
+      const r1Ingot = parseFloat(document.getElementById('r1_ingotWt').value) || 0;
+      const r1Po = parseFloat(document.getElementById('r1_poWt').value) || 0;
+      const r1Removed = r1Ingot + r1Po;
+      const r1RemMelt = Math.max(0, r1Charge - r1Removed);
+      const r1G = r1Charge > 0 ? Math.min(0.99, r1Removed / r1Charge) : 0;
+      // 1st Alloy 기준 잔류 무게(g) = 초기 투입량(g) * (1 - g)^k0
+      const r1ResidualAlloyG = r1WeightG * Math.pow(Math.max(0.0001, 1 - r1G), k0);
+
+      document.getElementById('r1_totalRemoved').innerText = `${r1Removed.toFixed(1)} kg`;
+      document.getElementById('r1_remainingMelt').innerText = `${r1RemMelt.toFixed(1)} kg`;
+      document.getElementById('r1_residualDopant').innerText = `${r1ResidualAlloyG.toFixed(2)} g`;
+
+      lastRunProfiles[1] = { charge: r1Charge, diam: r1Diam, taper: r1Taper, Co: r1Co, k0, mu, q, siDensity };
+
+      // ================= 2ND RUN =================
+      const r2Conc = parseConcInput(document.getElementById('r2_conc').value) || pureEquivPpb;
+      const r2ConcExpEl = document.getElementById('r2_conc_exp');
+      if (r2ConcExpEl) {
+        r2ConcExpEl.innerText = runModes[2] === 'pure'
+          ? `Pure 등가: ${r2Conc.toExponential(2).toUpperCase()} ppb`
+          : `≈ ${r2Conc.toExponential(2).toUpperCase()} ppb`;
+      }
+      // 1st 잔류 Alloy 무게를 2nd Alloy 농도 기준으로 직접 환산: W_res_1st * (Conc_1st / Conc_2nd)
+      const r1ResConvertedToR2AlloyG = r2Conc > 0 ? r1ResidualAlloyG * (r1Conc / r2Conc) : 0;
+
+      if (document.getElementById('r2_inherit').checked) {
+        document.getElementById('r2_remMelt').value = r1RemMelt.toFixed(1);
+        document.getElementById('r2_resDopant').value = r1ResConvertedToR2AlloyG.toFixed(2);
+      }
+      const r2RemMeltInput = parseFloat(document.getElementById('r2_remMelt').value) || 0;
+      const r2ResAlloyInput = parseFloat(document.getElementById('r2_resDopant').value) || 0;
+      const r2Charge = parseFloat(document.getElementById('r2_charge').value) || 0;
+      const r2AddingSi = Math.max(0, r2Charge - r2RemMeltInput);
+      document.getElementById('r2_addingSi').value = r2AddingSi.toFixed(1);
+
+      const r2Diam = getEffectiveDiameter(2);
+      const r2Taper = getEffectiveTaperWeight(2, r2Diam, siDensity);
+      const r2Res = parseFloat(document.getElementById('r2_targetRes').value) || 0;
+      const r2Recycle = parseFloat(document.getElementById('r2_recycle').value) || 0;
+
+      const r2Calc = calcRechargeRun({
+        charge: r2Charge, taper: r2Taper, targetPos, targetRes: r2Res, conc: r2Conc,
+        resAlloyEquivG: r2ResAlloyInput, recycleG: r2Recycle,
+        k0, mu, q, siDensity, getPpbFromCo
+      });
+
+      document.getElementById('r2_outAddingWeight').innerText = r2Calc.netAddingG.toFixed(3);
+      document.getElementById('r2_outTotalNeeded').innerText = `(총 필요: ${r2Calc.totalNeededAlloyG.toFixed(2)} g - 잔류환산: ${r2Calc.resAlloyEquivG.toFixed(2)} g)`;
+      document.getElementById('r2_outPpb').innerText = `${r2Calc.ppbInput.toFixed(2)} ppb`;
+      document.getElementById('r2_outCo').innerText = `${r2Calc.Co.toExponential(2).toUpperCase()} /cm³`;
+      document.getElementById('r2_outCs').innerText = `${r2Calc.Cs.toExponential(2).toUpperCase()} /cm³`;
+
+      const r2FormulaEl = document.getElementById('r2_formulaSteps');
+      if (r2FormulaEl) {
+        r2FormulaEl.innerHTML = `
+          <div><span class="text-slate-400">1) 2nd [C]o</span> = <span class="text-cyan-300 font-semibold">${r2Calc.Co.toExponential(2).toUpperCase()} atoms/cm³</span> &rarr; <span class="text-amber-300 font-bold">${r2Calc.ppbInput.toFixed(2)} ppb</span></div>
+          <div><span class="text-slate-400">2) 2nd 총 필요 Alloy</span> = (${r2Calc.ppbInput.toFixed(2)} / ${r2Conc.toLocaleString()}) × ${(r2Charge * 1000).toLocaleString()} = <span class="text-emerald-300 font-semibold">${r2Calc.totalNeededAlloyG.toFixed(2)} g</span></div>
+          <div><span class="text-slate-400">3) 1st 잔류 도펀트 환산 (Pure 변환 없음)</span> = ${r1WeightG.toFixed(2)}g × (1 - ${r1G.toFixed(3)})^${k0} × (${r1Conc.toLocaleString()} / ${r2Conc.toLocaleString()}) = <span class="text-blue-300 font-semibold">${r2Calc.resAlloyEquivG.toFixed(2)} g</span></div>
+          <div><span class="text-slate-400">4) Net Adding Dopant</span> = ${r2Calc.totalNeededAlloyG.toFixed(2)} - ${r2Calc.resAlloyEquivG.toFixed(2)} - ${r2Recycle} = <span class="text-white font-bold">${r2Calc.netAddingG.toFixed(3)} g</span></div>
+        `;
+      }
+
+      // 2nd Run Lookup Table (Pure 변환 없이 Alloy 직접 환산)
+      renderLookupTable('r2_lookupBody', 2, {
+        prevCharge: r1Charge, prevAlloyG: r1WeightG, prevConc: r1Conc,
+        targetCharge: r2Charge, totalNeededAlloyG: r2Calc.totalNeededAlloyG,
+        conc: r2Conc, recycleG: r2Recycle, k0
+      });
+
+      // 2nd Pull Summary -> 3rd Run
+      const r2Ingot = parseFloat(document.getElementById('r2_ingotWt').value) || 0;
+      const r2Po = parseFloat(document.getElementById('r2_poWt').value) || 0;
+      const r2Removed = r2Ingot + r2Po;
+      const r2RemMeltOut = Math.max(0, r2Charge - r2Removed);
+      const r2G = r2Charge > 0 ? Math.min(0.99, r2Removed / r2Charge) : 0;
+      const r2ResidualAlloyG = r2Calc.totalNeededAlloyG * Math.pow(Math.max(0.0001, 1 - r2G), k0);
+
+      document.getElementById('r2_remainingMelt').innerText = `${r2RemMeltOut.toFixed(1)} kg`;
+      document.getElementById('r2_residualDopant').innerText = `${r2ResidualAlloyG.toFixed(2)} g`;
+
+      // 2nd Run Last 종료 중량 밸런스 (Charge - Crown - Body - Tail - Remain = 0)
+      const r2TailAngle = parseFloat(document.getElementById('r2_tailAngle')?.value) || 63.96;
+      const r2TailWt = calcTailWeightByDiam(r2Diam, siDensity, r2TailAngle);
+      const r2LastRemain = parseFloat(document.getElementById('r2_lastRemain')?.value) || 80.0;
+      const r2MaxBodyWt = Math.max(0, r2Charge - r2Taper - r2TailWt - r2LastRemain);
+      const r2KgPerMm = (Math.PI * Math.pow((r2Diam / 2) / 10, 2) * 0.1 * siDensity) / 1000;
+      const r2MaxBodyLenMm = r2KgPerMm > 0 ? Math.round(r2MaxBodyWt / r2KgPerMm) : 0;
+      const r2EndG = r2Charge > 0 ? Math.min(0.98, (r2Taper + r2MaxBodyWt) / r2Charge) : 0;
+      const r2EndCs = k0 * r2Calc.Co * Math.pow(1 - r2EndG, k0 - 1);
+      const r2EndRes = r2EndCs > 0 ? 1 / (q * mu * r2EndCs) : 0;
+
+      if (document.getElementById('r2_tailWt')) document.getElementById('r2_tailWt').value = r2TailWt.toFixed(2);
+      if (document.getElementById('r2_maxBodyWt')) document.getElementById('r2_maxBodyWt').innerText = `${r2MaxBodyWt.toFixed(1)} kg`;
+      if (document.getElementById('r2_maxBodyLen')) document.getElementById('r2_maxBodyLen').innerText = `${r2MaxBodyLenMm.toLocaleString()} mm`;
+      if (document.getElementById('r2_endRes')) document.getElementById('r2_endRes').innerText = `${r2EndRes.toFixed(4)} Ω·cm`;
+
+      lastRunProfiles[2] = {
+        charge: r2Charge, diam: r2Diam, taper: r2Taper, Co: r2Calc.Co, k0, mu, q, siDensity,
+        tailWt: r2TailWt, remainWt: r2LastRemain, maxBodyWt: r2MaxBodyWt, maxBodyLenMm: r2MaxBodyLenMm
+      };
+
+      // ================= 3RD RUN =================
+      const r3Conc = parseConcInput(document.getElementById('r3_conc').value) || pureEquivPpb;
+      const r3ConcExpEl = document.getElementById('r3_conc_exp');
+      if (r3ConcExpEl) {
+        r3ConcExpEl.innerText = runModes[3] === 'pure'
+          ? `Pure 등가: ${r3Conc.toExponential(2).toUpperCase()} ppb`
+          : `≈ ${r3Conc.toExponential(2).toUpperCase()} ppb`;
+      }
+      const r2ResConvertedToR3AlloyG = r3Conc > 0 ? r2ResidualAlloyG * (r2Conc / r3Conc) : 0;
+
+      if (document.getElementById('r3_inherit').checked) {
+        document.getElementById('r3_remMelt').value = r2RemMeltOut.toFixed(1);
+        document.getElementById('r3_resDopant').value = r2ResConvertedToR3AlloyG.toFixed(2);
+      }
+      const r3RemMeltInput = parseFloat(document.getElementById('r3_remMelt').value) || 0;
+      const r3ResAlloyInput = parseFloat(document.getElementById('r3_resDopant').value) || 0;
+      const r3Charge = parseFloat(document.getElementById('r3_charge').value) || 0;
+      const r3AddingSi = Math.max(0, r3Charge - r3RemMeltInput);
+      document.getElementById('r3_addingSi').value = r3AddingSi.toFixed(1);
+
+      const r3Diam = getEffectiveDiameter(3);
+      const r3Taper = getEffectiveTaperWeight(3, r3Diam, siDensity);
+      const r3Res = parseFloat(document.getElementById('r3_targetRes').value) || 0;
+      const r3Recycle = parseFloat(document.getElementById('r3_recycle').value) || 0;
+
+      const r3Calc = calcRechargeRun({
+        charge: r3Charge, taper: r3Taper, targetPos, targetRes: r3Res, conc: r3Conc,
+        resAlloyEquivG: r3ResAlloyInput, recycleG: r3Recycle,
+        k0, mu, q, siDensity, getPpbFromCo
+      });
+
+      document.getElementById('r3_outAddingWeight').innerText = r3Calc.netAddingG.toFixed(3);
+      document.getElementById('r3_outTotalNeeded').innerText = `(총 필요: ${r3Calc.totalNeededAlloyG.toFixed(2)} g - 잔류환산: ${r3Calc.resAlloyEquivG.toFixed(2)} g)`;
+      document.getElementById('r3_outPpb').innerText = `${r3Calc.ppbInput.toFixed(2)} ppb`;
+      document.getElementById('r3_outCo').innerText = `${r3Calc.Co.toExponential(2).toUpperCase()} /cm³`;
+      document.getElementById('r3_outCs').innerText = `${r3Calc.Cs.toExponential(2).toUpperCase()} /cm³`;
+
+      renderLookupTable('r3_lookupBody', 3, {
+        prevCharge: r2Charge, prevAlloyG: r2Calc.totalNeededAlloyG, prevConc: r2Conc,
+        targetCharge: r3Charge, totalNeededAlloyG: r3Calc.totalNeededAlloyG,
+        conc: r3Conc, recycleG: r3Recycle, k0
+      });
+
+      // 3rd Run Last 종료 중량 밸런스 (Charge - Crown - Body - Tail - Remain = 0)
+      const r3TailAngle = parseFloat(document.getElementById('r3_tailAngle')?.value) || 63.96;
+      const r3TailWt = calcTailWeightByDiam(r3Diam, siDensity, r3TailAngle);
+      const r3LastRemain = parseFloat(document.getElementById('r3_lastRemain')?.value) || 80.0;
+      const r3MaxBodyWt = Math.max(0, r3Charge - r3Taper - r3TailWt - r3LastRemain);
+      const r3KgPerMm = (Math.PI * Math.pow((r3Diam / 2) / 10, 2) * 0.1 * siDensity) / 1000;
+      const r3MaxBodyLenMm = r3KgPerMm > 0 ? Math.round(r3MaxBodyWt / r3KgPerMm) : 0;
+      const r3EndG = r3Charge > 0 ? Math.min(0.98, (r3Taper + r3MaxBodyWt) / r3Charge) : 0;
+      const r3EndCs = k0 * r3Calc.Co * Math.pow(1 - r3EndG, k0 - 1);
+      const r3EndRes = r3EndCs > 0 ? 1 / (q * mu * r3EndCs) : 0;
+
+      if (document.getElementById('r3_tailWt')) document.getElementById('r3_tailWt').value = r3TailWt.toFixed(2);
+      if (document.getElementById('r3_maxBodyWt')) document.getElementById('r3_maxBodyWt').innerText = `${r3MaxBodyWt.toFixed(1)} kg`;
+      if (document.getElementById('r3_maxBodyLen')) document.getElementById('r3_maxBodyLen').innerText = `${r3MaxBodyLenMm.toLocaleString()} mm`;
+      if (document.getElementById('r3_endRes')) document.getElementById('r3_endRes').innerText = `${r3EndRes.toFixed(4)} Ω·cm`;
+
+      lastRunProfiles[3] = {
+        charge: r3Charge, diam: r3Diam, taper: r3Taper, Co: r3Calc.Co, k0, mu, q, siDensity,
+        tailWt: r3TailWt, remainWt: r3LastRemain, maxBodyWt: r3MaxBodyWt, maxBodyLenMm: r3MaxBodyLenMm
+      };
+
+      // 활성화된 탭 프로파일 업데이트
+      if (lastRunProfiles[activeRunTab]) {
+        renderProfileTableAndChart(lastRunProfiles[activeRunTab]);
+      }
+      calcTab4();
+      calcTab5();
+      renderFormulaReferencePage({
+        k0, mu, siDensity, elemM, pureEquivPpb,
+        r1Charge, r1Diam, r1Taper, r1Res, r1Conc, r1Cs, r1Co, r1PpbInput, r1WeightG,
+        r1Removed, r1G, r1ResidualAlloyG,
+        r2Charge, r2Conc, r2Calc
+      });
+    }
+
+    function renderFormulaReferencePage(d) {
+      const nSi = getUnifiedNSi(d.siDensity);
+      const r1BaseDiam = parseFloat(document.getElementById('r1_diameter')?.value) || 443;
+      const r1Offset = parseFloat(document.getElementById('r1_diamOffset')?.value) || 7;
+      const r1Angle = parseFloat(document.getElementById('r1_taperAngle')?.value) || 38;
+      const rad = (r1Angle * Math.PI) / 180;
+      const radiusMm = d.r1Diam / 2;
+      const heightMm = (Math.tan(rad) * d.r1Diam) / 2;
+      const kgPerCm = (Math.PI * Math.pow(radiusMm / 10, 2) * d.siDensity) / 1000;
+
+      const box1 = document.getElementById('f6_box1');
+      if (box1) {
+        box1.innerHTML = `
+          <div class="text-cyan-300 font-bold mb-1">[현재 설정값 대입 결과]</div>
+          <div>&bull; $N_{\\text{Si}}$ = (${d.siDensity} / 28.0855) × 6.02214E+23 = <span class="text-white font-bold">${nSi.toExponential(4).toUpperCase()} atoms/cm³</span></div>
+          <div>&bull; 선택 원소(${currentElement}) 원자량 = ${d.elemM} g/mol &rarr; Pure 등가 농도 = <span class="text-emerald-300 font-bold">${d.pureEquivPpb.toExponential(3).toUpperCase()} ppb</span></div>
+        `;
+      }
+
+      const box2 = document.getElementById('f6_box2');
+      if (box2) {
+        box2.innerHTML = `
+          <div class="text-cyan-300 font-bold mb-1">[1st Run 직경 &amp; Crown 원뿔 대입 결과]</div>
+          <div>&bull; 유효 직경 $D_{\\text{eff}}$ = ${r1BaseDiam} + ${r1Offset} = <span class="text-white font-bold">${d.r1Diam} mm</span> (반지름 R = ${radiusMm.toFixed(2)} mm)</div>
+          <div>&bull; 원뿔 높이 H (${r1Angle}°) = (tan(rad(${r1Angle}°)) × ${d.r1Diam}) / 2 = <span class="text-white font-bold">${heightMm.toFixed(2)} mm</span> &rarr; Taper Wt = <span class="text-emerald-300 font-bold">${d.r1Taper.toFixed(2)} kg</span></div>
+          <div>&bull; Body 1cm당 무게 = <span class="text-amber-300 font-bold">${kgPerCm.toFixed(3)} kg/cm</span></div>
+        `;
+      }
+
+      const box3 = document.getElementById('f6_box3');
+      if (box3) {
+        const gTaper = d.r1Charge > 0 ? d.r1Taper / d.r1Charge : 0;
+        box3.innerHTML = `
+          <div class="text-emerald-300 font-bold mb-1">[1st Run (Body Start 기준 &amp; 이론 원자비) 대입 결과]</div>
+          <div>&bull; $[C]_s(g_{\\text{taper}}=${(gTaper*100).toFixed(2)}\\%)$ = 1 / (1.60E-19 × ${d.mu} × ${d.r1Res}) = <span class="text-white font-bold">${d.r1Cs.toExponential(2).toUpperCase()} /cm³</span></div>
+          <div>&bull; $[C]_o(0\\%)$ = ${d.r1Cs.toExponential(2).toUpperCase()} / [${d.k0} × (1 - ${gTaper.toFixed(4)})^(${d.k0}-1)] = <span class="text-white font-bold">${d.r1Co.toExponential(2).toUpperCase()} /cm³</span></div>
+          <div>&bull; 이론 원자비 ppb = (${d.r1Co.toExponential(2).toUpperCase()} / ${nSi.toExponential(2).toUpperCase()}) × 10⁹ = <span class="text-cyan-300 font-bold">${d.r1PpbInput.toFixed(2)} ppb</span> &rarr; 투입량 = <span class="text-emerald-300 font-bold">${d.r1WeightG.toFixed(3)} g</span></div>
+        `;
+      }
+
+      const box4 = document.getElementById('f6_box4');
+      if (box4) {
+        const gTaper = d.r1Charge > 0 ? d.r1Taper / d.r1Charge : 0;
+        const seedRes = (d.r1Co > 0 && d.k0 > 0) ? 1 / (CONSTANTS.q * d.mu * d.k0 * d.r1Co) : 0;
+        box4.innerHTML = `
+          <div class="text-emerald-300 font-bold mb-1">[1st Run Seed(0%) vs Body Start(0cm) 비저항 비교]</div>
+          <div>&bull; Seed ($g = 0\\%$) 비저항 = <span class="text-white font-bold">${seedRes.toFixed(4)} Ω·cm</span></div>
+          <div>&bull; Crown 완료 후 Body Start ($g = ${(gTaper * 100).toFixed(2)}\\%$) 비저항 = <span class="text-cyan-300 font-bold">${d.r1Res.toFixed(4)} Ω·cm</span> (Target Res 정확히 일치)</div>
+        `;
+      }
+
+      const box5 = document.getElementById('f6_box5');
+      if (box5) {
+        box5.innerHTML = `
+          <div class="text-amber-300 font-bold mb-1">[1st &rarr; 2nd Run 리차지 대입 결과 (Pure 변환 없음)]</div>
+          <div>&bull; 1st 인출량 = ${d.r1Removed.toFixed(1)} kg ($g_{\\text{out}}$ = ${(d.r1G * 100).toFixed(1)}%) &rarr; 1st Alloy 잔류량 = <span class="text-white font-bold">${d.r1ResidualAlloyG.toFixed(2)} g</span></div>
+          <div>&bull; 2nd Alloy(${d.r2Conc.toLocaleString()} ppb) 기준 환산 잔류량 = <span class="text-cyan-300 font-bold">${d.r2Calc.resAlloyEquivG.toFixed(2)} g</span></div>
+          <div>&bull; 2nd 총 필요 Alloy (${d.r2Calc.totalNeededAlloyG.toFixed(2)} g) - 잔류 환산 (${d.r2Calc.resAlloyEquivG.toFixed(2)} g) = Net Adding <span class="text-amber-300 font-bold">${d.r2Calc.netAddingG.toFixed(3)} g</span></div>
+        `;
+      }
+
+      const box6 = document.getElementById('f6_box6');
+      if (box6) {
+        const t5Charge = parseFloat(document.getElementById('t5_charge')?.value) || 560;
+        const t5Taper = parseFloat(document.getElementById('t5_taperKg')?.value) || 21.73;
+        const t5Tail = parseFloat(document.getElementById('t5_tailKg')?.value) || 32.9;
+        const t5Rem = parseFloat(document.getElementById('t5_remainKg')?.value) || 80.0;
+        const t5Body = Math.max(0, t5Charge - t5Taper - t5Tail - t5Rem);
+        const t5Len = document.getElementById('t5_hdrTarget')?.innerText || '1,148';
+        box6.innerHTML = `
+          <div class="text-purple-300 font-bold mb-1">[Dopant 역산 탭 Target Length 대입 결과]</div>
+          <div>&bull; 최대 Body 중량 = ${t5Charge} - (${t5Taper} + ${t5Tail} + ${t5Rem}) = <span class="text-white font-bold">${t5Body.toFixed(1)} kg</span></div>
+          <div>&bull; 산출된 Target Length = <span class="text-emerald-300 font-bold">${t5Len} mm</span></div>
+        `;
+      }
+    }
+
+    function calcRechargeRun(p) {
+      const gTaper = (p.targetPos === 'body' && p.charge > 0) ? Math.min(0.95, (p.taper || 0) / p.charge) : 0;
+      const Cs = (p.targetRes > 0 && p.mu > 0) ? 1 / (p.q * p.mu * p.targetRes) : 0;
+      const Co = p.k0 > 0 ? Cs / (p.k0 * Math.pow(1 - gTaper, p.k0 - 1)) : 0;
+      const ppbInput = p.getPpbFromCo(Co, p.k0);
+
+      const totalNeededAlloyG = p.conc > 0 ? (ppbInput / p.conc) * (p.charge * 1000) : 0;
+      const resAlloyEquivG = p.resAlloyEquivG || 0;
+      const netAddingG = Math.max(0, totalNeededAlloyG - resAlloyEquivG - p.recycleG);
+
+      return { Cs, Co, ppbInput, totalNeededAlloyG, resAlloyEquivG, netAddingG };
+    }
+
+    function renderProfileTableAndChart(p) {
+      const tbody = document.getElementById('dataTableBody');
+      tbody.innerHTML = '';
+
+      const radiusCm = (p.diam / 10) / 2;
+      const weightPerCmKg = (Math.PI * radiusCm * radiusCm * p.siDensity) / 1000;
+      const labels = [];
+      const resData = [];
+
+      const res0 = p.Co > 0 ? 1 / (p.q * p.mu * (p.k0 * p.Co)) : 0;
+      const rows = [{ g: 0, label: 'Seed (0%)', wt: 0, res: res0, cs: p.k0 * p.Co, cmelt: p.Co, isBodyStart: false }];
+
+      const maxLenCm = p.maxBodyLenMm !== undefined ? (p.maxBodyLenMm / 10) : 100;
+      const baseLengths = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+      const lengths = baseLengths.filter(l => l < maxLenCm);
+      if (p.maxBodyLenMm !== undefined && maxLenCm > 0) {
+        lengths.push(Number(maxLenCm.toFixed(1)));
+      }
+
+      lengths.forEach(len => {
+        const wt = p.taper + len * weightPerCmKg;
+        if (p.maxBodyLenMm === undefined && wt > p.charge * 0.95) return;
+        const g = p.charge > 0 ? wt / p.charge : 0;
+        if (g >= 0.98) return;
+        const cs = p.k0 * p.Co * Math.pow(1 - g, p.k0 - 1);
+        const cmelt = p.Co * Math.pow(1 - g, p.k0 - 1);
+        const res = cs > 0 ? 1 / (p.q * p.mu * cs) : 0;
+        const isTargetEnd = (p.maxBodyLenMm !== undefined && Math.abs(len - maxLenCm) < 0.05 && len > 0);
+        rows.push({
+          g: g * 100,
+          label: len === 0 ? 'Body Start (0 cm)' : (isTargetEnd ? `${len} cm (${p.maxBodyLenMm}mm End)` : `${len} cm`),
+          wt, res, cs, cmelt,
+          isBodyStart: len === 0 || isTargetEnd
+        });
+      });
+
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = r.isBodyStart
+          ? "bg-cyan-950/40 font-bold border-l-2 border-cyan-400"
+          : "hover:bg-slate-800/40 transition";
+        tr.innerHTML = `
+          <td class="py-2 px-4 font-semibold">${r.g.toFixed(1)}%</td>
+          <td class="py-2 px-4 ${r.isBodyStart ? 'text-cyan-300 font-bold' : 'text-slate-400'}">${r.label}</td>
+          <td class="py-2 px-4">${r.wt.toFixed(1)}</td>
+          <td class="py-2 px-4 font-bold text-cyan-300">${r.res.toFixed(4)}</td>
+          <td class="py-2 px-4 text-emerald-400">${r.cs.toExponential(2).toUpperCase()}</td>
+          <td class="py-2 px-4 text-slate-400">${r.cmelt.toExponential(2).toUpperCase()}</td>
+        `;
+        tbody.appendChild(tr);
+        labels.push(r.label);
+        resData.push(r.res.toFixed(4));
+      });
+
+      if (chartInstance) {
+        chartInstance.data.labels = labels;
+        chartInstance.data.datasets = [{
+          label: 'Resistivity (Ω·cm)',
+          data: resData,
+          borderColor: '#22d3ee',
+          backgroundColor: 'rgba(34, 211, 238, 0.1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#22d3ee',
+          fill: true,
+          tension: 0.25
+        }];
+        chartInstance.options.plugins.legend.display = false;
+        chartInstance.update();
+      }
+    }
+
+    function initChart() {
+      const ctx = document.getElementById('resistivityChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Resistivity (Ω·cm)',
+            data: [],
+            borderColor: '#22d3ee',
+            backgroundColor: 'rgba(34, 211, 238, 0.1)',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#22d3ee',
+            fill: true,
+            tension: 0.25
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } }
+          }
+        }
+      });
+    }
+
+    function exportToCSV() {
+      const rows = document.querySelectorAll('#dataTableBody tr');
+      if (!rows.length) return;
+      let csv = '\uFEFFSolidified_Fraction(g),Body_Length,Weight(kg),Resistivity(Ohm-cm),[C]s(/cm3),[C]o(/cm3)\n';
+      rows.forEach(row => {
+        const cols = row.querySelectorAll('td');
+        csv += Array.from(cols).map(c => `"${c.innerText.trim()}"`).join(',') + '\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `CZ_Run${activeRunTab}_Profile_${currentType}Type_${currentElement}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function renderLookupTable(tbodyId, runNum, p) {
+      const tbody = document.getElementById(tbodyId);
+      const startWt = parseFloat(document.getElementById(`r${runNum}_lookupStart`).value) || 90;
+      const endWt = parseFloat(document.getElementById(`r${runNum}_lookupEnd`).value) || 440;
+      const step = Math.max(1, parseFloat(document.getElementById(`r${runNum}_lookupStep`).value) || 1);
+      tbody.innerHTML = '';
+
+      const maxRows = 1000;
+      let count = 0;
+      for (let wt = startWt; wt <= endWt && count < maxRows; wt += step, count++) {
+        const remMelt = Math.max(0, p.prevCharge - wt);
+        const addingSi = Math.max(0, p.targetCharge - remMelt);
+        const g = p.prevCharge > 0 ? Math.min(0.99, wt / p.prevCharge) : 0;
+        // Pure 변환 없이 바로 잔류 Alloy 환산: prevAlloyG * (1 - g)^k0 * (prevConc / currentConc)
+        const resPrevAlloyG = p.prevAlloyG * Math.pow(Math.max(0.0001, 1 - g), p.k0);
+        const resCurrentAlloyEquivG = p.conc > 0 ? resPrevAlloyG * (p.prevConc / p.conc) : 0;
+        const addingAlloyG = Math.max(0, p.totalNeededAlloyG - resCurrentAlloyEquivG - p.recycleG);
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition";
+        tr.innerHTML = `
+          <td class="py-1.5 px-4 font-semibold text-slate-200">${wt} kg</td>
+          <td class="py-1.5 px-4 text-slate-400">${remMelt.toFixed(1)} kg</td>
+          <td class="py-1.5 px-4 text-amber-300/90">${addingSi.toFixed(1)} kg</td>
+          <td class="py-1.5 px-4 font-bold text-emerald-400">${addingAlloyG.toFixed(2)} g</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function exportLookupCSV(runNum) {
+      const rows = document.querySelectorAll(`#r${runNum}_lookupBody tr`);
+      if (!rows.length) return;
+      let csv = `\uFEFFp/o+Ingot_wt(kg),Remaining_Melt(kg),Adding_Si(kg),Adding_Dopant(g)\n`;
+      rows.forEach(row => {
+        const cols = row.querySelectorAll("td");
+        csv += Array.from(cols).map(c => `"${c.innerText.trim()}"`).join(",") + "\n";
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `CZ_Run${runNum}_LookupTable_${currentType}Type_${currentElement}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    window.onload = function() {
+      initPresets();
+      initChart();
+      updateTab5TaperAndTailFromDiam();
+      recalculateAll();
+    };
+  </script>
+</body>
+</html>
