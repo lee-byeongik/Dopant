@@ -1315,19 +1315,19 @@
           <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
             <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-700 flex items-center justify-center text-[11px]">1</span>
-              기본 물리 상수 및 실리콘 원자 밀도 ($N_{\text{Si}}$)
+              기본 물리 상수 및 실리콘 원자 밀도 (N<sub>Si</sub>)
             </h3>
             <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
-              <p class="text-slate-400">단위 부피($1\text{ cm}^3$)당 실리콘 원자 수 $N_{\text{Si}}$와 순수 도펀트(Pure)의 원자비 등가 농도는 다음과 같이 정의됩니다.</p>
+              <p class="text-slate-400">단위 부피(1 cm³)당 실리콘 원자 수 N<sub>Si</sub>와 순수 도펀트(Pure)의 원자비 등가 농도는 다음과 같이 정의됩니다.</p>
               <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
-                <div>&bull; 전하량 ($q$) = <span class="text-cyan-300">1.60E-19 C</span></div>
-                <div>&bull; 실리콘 원자량 ($M_{\text{Si}}$) = <span class="text-cyan-300">28.0855 g/mol</span></div>
-                <div>&bull; 아보가드로 수 ($N_A$) = <span class="text-cyan-300">6.02214E+23 atoms/mol</span></div>
+                <div>&bull; 전하량 (q) = <span class="text-cyan-300">1.60E-19 C</span></div>
+                <div>&bull; 실리콘 원자량 (M<sub>Si</sub>) = <span class="text-cyan-300">28.0855 g/mol</span></div>
+                <div>&bull; 아보가드로 수 (N<sub>A</sub>) = <span class="text-cyan-300">6.02214E+23 atoms/mol</span></div>
                 <div class="pt-1 border-t border-slate-800 text-emerald-300 font-semibold">
-                  $N_{\text{Si}} = \frac{d_{\text{Si}}}{M_{\text{Si}}} \times N_A$
+                  N<sub>Si</sub> = (d<sub>Si</sub> / M<sub>Si</sub>) × N<sub>A</sub>
                 </div>
                 <div class="text-amber-300">
-                  $\text{Pure Dopant Conc. (ppb)} = 10^9 \times \frac{M_{\text{Si}}}{M_{\text{dopant}}} = 10^9 \times \frac{28.0855}{M_{\text{dopant}}}$
+                  Pure Dopant Conc. (ppb) = 10⁹ × (M<sub>Si</sub> / M<sub>dopant</sub>) = 10⁹ × (28.0855 / M<sub>dopant</sub>)
                 </div>
               </div>
               <!-- P-type / N-type 5대 도펀트 Pure 등가 ppb 계산식 표 -->
@@ -1336,8 +1336,8 @@
                   <thead class="bg-slate-900 text-slate-300 border-b border-slate-800">
                     <tr>
                       <th class="py-1.5 px-2.5">원소 (Type)</th>
-                      <th class="py-1.5 px-2.5">원자량 ($M$)</th>
-                      <th class="py-1.5 px-2.5">계산식 ($10^9 \times \frac{28.0855}{M}$)</th>
+                      <th class="py-1.5 px-2.5">원자량 (M)</th>
+                      <th class="py-1.5 px-2.5">계산식 (10⁹ × 28.0855 / M)</th>
                       <th class="py-1.5 px-2.5 text-amber-300">Pure 등가 ppb (지수)</th>
                     </tr>
                   </thead>
@@ -1383,18 +1383,18 @@
           <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
             <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-700 flex items-center justify-center text-[11px]">2</span>
-              유효 직경 ($D_{\text{eff}}$), Crown(Taper) 원뿔 무게 및 Body 단위무게
+              유효 직경 (D<sub>eff</sub>), Crown(Taper) 원뿔 무게 및 Body 단위무게
             </h3>
             <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
-              <p class="text-slate-400">잉곳 직경 보정값($+0, +7\text{ mm}$)이 반영된 유효 직경과 경사각($\theta = 38^\circ$)의 탄젠트($\tan$)로 원뿔 높이와 무게를 산출합니다.</p>
+              <p class="text-slate-400">잉곳 직경 보정값(+0, +7 mm)이 반영된 유효 직경과 경사각(θ = 38°)의 탄젠트(tan)로 원뿔 높이와 무게를 산출합니다.</p>
               <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
-                <div>&bull; 유효 직경: $D_{\text{eff}} = D_{\text{input}} + \text{Offset}\ (\text{mm})$, 반지름 $R = \frac{D_{\text{eff}}}{2}$</div>
-                <div>&bull; Crown 원뿔 높이: $H(\text{mm}) = \frac{\tan(\text{rad}(\theta)) \times D_{\text{eff}}}{2}$</div>
+                <div>&bull; 유효 직경: D<sub>eff</sub> = D<sub>input</sub> + Offset (mm), 반지름 R = D<sub>eff</sub> / 2</div>
+                <div>&bull; Crown 원뿔 높이: H (mm) = (tan(rad(θ)) × D<sub>eff</sub>) / 2</div>
                 <div class="text-emerald-300 font-semibold">
-                  $\text{Taper Wt (kg)} = \frac{1}{3} \pi \left(\frac{R}{10}\right)^2 \left(\frac{H}{10}\right) \times d_{\text{Si}} \div 1000$
+                  Taper Wt (kg) = (1/3) × π × (R / 10)² × (H / 10) × d<sub>Si</sub> ÷ 1000
                 </div>
                 <div class="text-amber-300">
-                  $\text{Body 단위무게 (kg/cm)} = \pi \left(\frac{R}{10}\right)^2 \times 1\text{ cm} \times d_{\text{Si}} \div 1000$
+                  Body 단위무게 (kg/cm) = π × (R / 10)² × 1 cm × d<sub>Si</sub> ÷ 1000
                 </div>
               </div>
               <div id="f6_box2" class="p-2.5 bg-cyan-950/20 border border-cyan-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
@@ -1408,15 +1408,15 @@
               ASTM F723 (SEMI MF723) 농도-비저항 변환 및 투입량(g) 공식
             </h3>
             <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
-              <p class="text-slate-400">ASTM F723 표준은 도펀트 농도($N$) 증가에 따른 유효 이동도 $\mu(N)$ 저하(Thurber/Arora 실리콘 표준 곡선)를 반영하여 전 농도 구간에서 정확한 비저항과 캐리어 농도를 상호 변환합니다.</p>
+              <p class="text-slate-400">ASTM F723 표준은 도펀트 농도(N) 증가에 따른 유효 이동도 μ(N) 저하(Thurber/Arora 실리콘 표준 곡선)를 반영하여 전 농도 구간에서 정확한 비저항과 캐리어 농도를 상호 변환합니다.</p>
               <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
-                <div>① ASTM F723 유효 이동도: $\mu(N) = \mu_{\min} + \frac{\mu_{\max} - \mu_{\min}}{1 + (N / N_{\text{ref}})^\alpha}$</div>
-                <div>② 농도 &harr; 비저항 관계식: $\rho = \frac{1}{q \cdot \mu(N) \cdot N}$ (역변환은 Newton-Raphson 수치해석)</div>
+                <div>① ASTM F723 유효 이동도: μ(N) = μ<sub>min</sub> + (μ<sub>max</sub> - μ<sub>min</sub>) / [1 + (N / N<sub>ref</sub>)<sup>α</sup>]</div>
+                <div>② 농도 &harr; 비저항 관계식: ρ = 1 / [q · μ(N) · N] (역변환은 Newton-Raphson 수치해석)</div>
                 <div class="text-cyan-300 font-semibold">
-                  ③ 이론 원자비 $\text{Dopant ppb input} = \frac{[C]_o}{N_{\text{Si}}} \times 10^9$
+                  ③ 이론 원자비 Dopant ppb input = ([C]<sub>o</sub> / N<sub>Si</sub>) × 10⁹
                 </div>
                 <div class="text-emerald-300 font-bold">
-                  ④ $\text{Dopant Weight (g)} = \frac{\text{Dopant ppb input}}{\text{Alloy Conc. (ppb)}} \times \text{Charge Wt (g)}$
+                  ④ Dopant Weight (g) = (Dopant ppb input / Alloy Conc. (ppb)) × Charge Wt (g)
                 </div>
               </div>
               <div id="f6_box3" class="p-2.5 bg-emerald-950/20 border border-emerald-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
@@ -1427,18 +1427,18 @@
           <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
             <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
               <span class="w-5 h-5 rounded-full bg-emerald-950 border border-emerald-700 flex items-center justify-center text-[11px]">4</span>
-              고화율($g$) 및 길이($L$)에 따른 Scheil 비저항 변화식
+              고화율(g) 및 길이(L)에 따른 Scheil 비저항 변화식
             </h3>
             <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
-              <p class="text-slate-400">결정이 성장함에 따라 편석계수($k_0 < 1$)에 의해 잔류 융액이 농축되고 비저항이 점진적으로 낮아집니다.</p>
+              <p class="text-slate-400">결정이 성장함에 따라 편석계수(k₀ &lt; 1)에 의해 잔류 융액이 농축되고 비저항이 점진적으로 낮아집니다.</p>
               <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
-                <div>① 누적 결정 중량: $W(L) = \text{Taper Wt} + L(\text{cm}) \times \text{단위무게(kg/cm)}$</div>
-                <div>② 고화율 (Solidified Fraction): $g = \frac{W(L)}{\text{Charge Weight}}$</div>
+                <div>① 누적 결정 중량: W(L) = Taper Wt + L (cm) × 단위무게 (kg/cm)</div>
+                <div>② 고화율 (Solidified Fraction): g = W(L) / Charge Weight</div>
                 <div class="text-cyan-300 font-semibold">
-                  ③ 고화율 $g$에서의 고체 농도: $[C]_s(g) = k_0 \cdot [C]_o \cdot (1 - g)^{k_0 - 1}$
+                  ③ 고화율 g에서의 고체 농도: [C]<sub>s</sub>(g) = k₀ · [C]<sub>o</sub> · (1 - g)<sup>k₀ - 1</sup>
                 </div>
                 <div class="text-emerald-300 font-bold">
-                  ④ 고화율 $g$에서의 비저항: $\rho(g) = \frac{1}{q \times \mu \times [C]_s(g)} = \rho_{\text{seed}} \cdot (1 - g)^{1 - k_0}$
+                  ④ 고화율 g에서의 비저항: ρ(g) = 1 / [q × μ × [C]<sub>s</sub>(g)] = ρ<sub>seed</sub> · (1 - g)<sup>1 - k₀</sup>
                 </div>
               </div>
               <div id="f6_box4" class="p-2.5 bg-emerald-950/20 border border-emerald-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
@@ -1452,15 +1452,15 @@
               2nd / 3rd Run 리차지 잔류 도펀트 (Pure 변환 없는 직접 환산식)
             </h3>
             <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
-              <p class="text-slate-400">Pure 무게로 변환할 필요 없이, 이전 Run의 잔류율 $(1 - g_{\text{out}})^{k_0}$과 Alloy 농도(ppb) 비율만으로 즉시 잔류 Alloy 환산량(g)을 구합니다.</p>
+              <p class="text-slate-400">Pure 무게로 변환할 필요 없이, 이전 Run의 잔류율 (1 - g<sub>out</sub>)<sup>k₀</sup>과 Alloy 농도(ppb) 비율만으로 즉시 잔류 Alloy 환산량(g)을 구합니다.</p>
               <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
-                <div>① 인출 고화율: $g_{\text{out}} = \frac{W_{\text{ingot}} + W_{\text{p/o}}}{W_{\text{charge, prev}}}$</div>
-                <div>② 1st Alloy 기준 잔류량: $W_{\text{res, 1st}} = W_{\text{init, 1st}} \times (1 - g_{\text{out}})^{k_0}$</div>
+                <div>① 인출 고화율: g<sub>out</sub> = (W<sub>ingot</sub> + W<sub>p/o</sub>) / W<sub>charge, prev</sub></div>
+                <div>② 1st Alloy 기준 잔류량: W<sub>res, 1st</sub> = W<sub>init, 1st</sub> × (1 - g<sub>out</sub>)<sup>k₀</sup></div>
                 <div class="text-cyan-300 font-semibold">
-                  ③ 2nd Alloy 기준 잔류 환산량(g): $W_{\text{res, 2nd}} = W_{\text{res, 1st}} \times \frac{\text{1st Alloy Conc. (ppb)}}{\text{2nd Alloy Conc. (ppb)}}$
+                  ③ 2nd Alloy 기준 잔류 환산량(g): W<sub>res, 2nd</sub> = W<sub>res, 1st</sub> × (1st Alloy Conc. / 2nd Alloy Conc.)
                 </div>
                 <div class="text-amber-300 font-bold">
-                  ④ 추가 투입량: $\text{Net Adding (g)} = W_{\text{total, 2nd}} - W_{\text{res, 2nd}} - W_{\text{recycle}}$
+                  ④ 추가 투입량: Net Adding (g) = W<sub>total, 2nd</sub> - W<sub>res, 2nd</sub> - W<sub>recycle</sub>
                 </div>
               </div>
               <div id="f6_box5" class="p-2.5 bg-amber-950/20 border border-amber-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
@@ -1476,13 +1476,13 @@
             <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
               <p class="text-slate-400">총 장입량에서 Taper, Tail, Remain 중량을 제외한 최대 Body 중량으로 Target Length를 계산합니다.</p>
               <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono-num text-[11px] space-y-1.5">
-                <div>① 중량 보존식: $\text{Charge} = W_{\text{Taper}} + W_{\text{Body, max}} + W_{\text{Tail}} + W_{\text{Remain}}$</div>
+                <div>① 중량 보존식: Charge = W<sub>Taper</sub> + W<sub>Body, max</sub> + W<sub>Tail</sub> + W<sub>Remain</sub></div>
                 <div class="text-purple-300 font-semibold">
-                  ② $\text{Target Length (mm)} = \frac{\text{Charge} - (W_{\text{Taper}} + W_{\text{Tail}} + W_{\text{Remain}})}{\text{단위무게 (kg/mm)}}$
+                  ② Target Length (mm) = [Charge - (W<sub>Taper</sub> + W<sub>Tail</sub> + W<sub>Remain</sub>)] / 단위무게 (kg/mm)
                 </div>
-                <div>③ 투입 도펀트 역산: $\text{ppb}_{\text{in}} = \frac{W_{\text{dopant}}(\text{g})}{\text{Charge}(\text{g})} \times \text{Alloy Conc. (ppb)}$</div>
+                <div>③ 투입 도펀트 역산: ppb<sub>in</sub> = [W<sub>dopant</sub> (g) / Charge (g)] × Alloy Conc. (ppb)</div>
                 <div class="text-emerald-300">
-                  ④ 초기 융액 역산: $[C]_o = \frac{(\text{ppb}_{\text{in}} / 10^9) \times N_{\text{Si}}}{k_0}$
+                  ④ 초기 융액 역산: [C]<sub>o</sub> = [(ppb<sub>in</sub> / 10⁹) × N<sub>Si</sub>] / k₀
                 </div>
               </div>
               <div id="f6_box6" class="p-2.5 bg-purple-950/20 border border-purple-800/40 rounded-lg font-mono-num text-[11px] text-slate-200"></div>
@@ -2657,7 +2657,7 @@
       if (box1) {
         box1.innerHTML = `
           <div class="text-cyan-300 font-bold mb-1">[현재 설정값 대입 결과]</div>
-          <div>&bull; $N_{\\text{Si}}$ = (${d.siDensity} / 28.0855) × 6.02214E+23 = <span class="text-white font-bold">${nSi.toExponential(4).toUpperCase()} atoms/cm³</span></div>
+          <div>&bull; N<sub>Si</sub> = (${d.siDensity} / 28.0855) × 6.02214E+23 = <span class="text-white font-bold">${nSi.toExponential(4).toUpperCase()} atoms/cm³</span></div>
           <div>&bull; 선택 원소(${currentElement}) 원자량 = ${d.elemM} g/mol &rarr; Pure 등가 농도 = <span class="text-emerald-300 font-bold">${d.pureEquivPpb.toExponential(3).toUpperCase()} ppb</span></div>
         `;
       }
@@ -2666,7 +2666,7 @@
       if (box2) {
         box2.innerHTML = `
           <div class="text-cyan-300 font-bold mb-1">[1st Run 직경 &amp; Crown 원뿔 대입 결과]</div>
-          <div>&bull; 유효 직경 $D_{\\text{eff}}$ = ${r1BaseDiam} + ${r1Offset} = <span class="text-white font-bold">${d.r1Diam} mm</span> (반지름 R = ${radiusMm.toFixed(2)} mm)</div>
+          <div>&bull; 유효 직경 D<sub>eff</sub> = ${r1BaseDiam} + ${r1Offset} = <span class="text-white font-bold">${d.r1Diam} mm</span> (반지름 R = ${radiusMm.toFixed(2)} mm)</div>
           <div>&bull; 원뿔 높이 H (${r1Angle}°) = (tan(rad(${r1Angle}°)) × ${d.r1Diam}) / 2 = <span class="text-white font-bold">${heightMm.toFixed(2)} mm</span> &rarr; Taper Wt = <span class="text-emerald-300 font-bold">${d.r1Taper.toFixed(2)} kg</span></div>
           <div>&bull; Body 1cm당 무게 = <span class="text-amber-300 font-bold">${kgPerCm.toFixed(3)} kg/cm</span></div>
         `;
@@ -2677,8 +2677,8 @@
         const gTaper = d.r1Charge > 0 ? d.r1Taper / d.r1Charge : 0;
         box3.innerHTML = `
           <div class="text-emerald-300 font-bold mb-1">[1st Run (Body Start 기준 &amp; 이론 원자비) 대입 결과]</div>
-          <div>&bull; $[C]_s(g_{\\text{taper}}=${(gTaper*100).toFixed(2)}\\%)$ = 1 / (1.60E-19 × ${d.mu} × ${d.r1Res}) = <span class="text-white font-bold">${d.r1Cs.toExponential(2).toUpperCase()} /cm³</span></div>
-          <div>&bull; $[C]_o(0\\%)$ = ${d.r1Cs.toExponential(2).toUpperCase()} / [${d.k0} × (1 - ${gTaper.toFixed(4)})^(${d.k0}-1)] = <span class="text-white font-bold">${d.r1Co.toExponential(2).toUpperCase()} /cm³</span></div>
+          <div>&bull; [C]<sub>s</sub>(g<sub>taper</sub> = ${(gTaper*100).toFixed(2)}%) = <span class="text-white font-bold">${d.r1Cs.toExponential(2).toUpperCase()} /cm³</span></div>
+          <div>&bull; [C]<sub>o</sub>(0%) = ${d.r1Cs.toExponential(2).toUpperCase()} / [${d.k0} × (1 - ${gTaper.toFixed(4)})<sup>${d.k0}-1</sup>] = <span class="text-white font-bold">${d.r1Co.toExponential(2).toUpperCase()} /cm³</span></div>
           <div>&bull; 이론 원자비 ppb = (${d.r1Co.toExponential(2).toUpperCase()} / ${nSi.toExponential(2).toUpperCase()}) × 10⁹ = <span class="text-cyan-300 font-bold">${d.r1PpbInput.toFixed(2)} ppb</span> &rarr; 투입량 = <span class="text-emerald-300 font-bold">${d.r1WeightG.toFixed(3)} g</span></div>
         `;
       }
@@ -2689,8 +2689,8 @@
         const seedRes = (d.r1Co > 0 && d.k0 > 0) ? calcResFromConc(d.k0 * d.r1Co, currentType, d.mu) : 0;
         box4.innerHTML = `
           <div class="text-emerald-300 font-bold mb-1">[1st Run Seed(0%) vs Body Start(0cm) 비저항 비교]</div>
-          <div>&bull; Seed ($g = 0\\%$) 비저항 = <span class="text-white font-bold">${seedRes.toFixed(4)} Ω·cm</span></div>
-          <div>&bull; Crown 완료 후 Body Start ($g = ${(gTaper * 100).toFixed(2)}\\%$) 비저항 = <span class="text-cyan-300 font-bold">${d.r1Res.toFixed(4)} Ω·cm</span> (Target Res 정확히 일치)</div>
+          <div>&bull; Seed (g = 0%) 비저항 = <span class="text-white font-bold">${seedRes.toFixed(4)} Ω·cm</span></div>
+          <div>&bull; Crown 완료 후 Body Start (g = ${(gTaper * 100).toFixed(2)}%) 비저항 = <span class="text-cyan-300 font-bold">${d.r1Res.toFixed(4)} Ω·cm</span> (Target Res 정확히 일치)</div>
         `;
       }
 
@@ -2698,7 +2698,7 @@
       if (box5) {
         box5.innerHTML = `
           <div class="text-amber-300 font-bold mb-1">[1st &rarr; 2nd Run 리차지 대입 결과 (Pure 변환 없음)]</div>
-          <div>&bull; 1st 인출량 = ${d.r1Removed.toFixed(1)} kg ($g_{\\text{out}}$ = ${(d.r1G * 100).toFixed(1)}%) &rarr; 1st Alloy 잔류량 = <span class="text-white font-bold">${d.r1ResidualAlloyG.toFixed(2)} g</span></div>
+          <div>&bull; 1st 인출량 = ${d.r1Removed.toFixed(1)} kg (g<sub>out</sub> = ${(d.r1G * 100).toFixed(1)}%) &rarr; 1st Alloy 잔류량 = <span class="text-white font-bold">${d.r1ResidualAlloyG.toFixed(2)} g</span></div>
           <div>&bull; 2nd Alloy(${d.r2Conc.toLocaleString()} ppb) 기준 환산 잔류량 = <span class="text-cyan-300 font-bold">${d.r2Calc.resAlloyEquivG.toFixed(2)} g</span></div>
           <div>&bull; 2nd 총 필요 Alloy (${d.r2Calc.totalNeededAlloyG.toFixed(2)} g) - 잔류 환산 (${d.r2Calc.resAlloyEquivG.toFixed(2)} g) = Net Adding <span class="text-amber-300 font-bold">${d.r2Calc.netAddingG.toFixed(3)} g</span></div>
         `;
